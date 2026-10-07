@@ -1,0 +1,61 @@
+databaseChangeLog:
+  - changeSet:
+      id: 003-create-exchange-rates
+      author: spending-service
+      changes:
+        - createSequence:
+            sequenceName: exchange_rate_seq
+            startValue: 1
+            incrementBy: 1
+
+        - createTable:
+            tableName: exchange_rates
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  defaultValueComputed: nextval('exchange_rate_seq')
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_exchange_rates
+                    nullable: false
+              - column:
+                  name: currency_pair
+                  type: VARCHAR(10)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: rate_date
+                  type: DATE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: close_rate
+                  type: NUMERIC(19, 6)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: previous_close_rate
+                  type: NUMERIC(19, 6)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - addUniqueConstraint:
+            constraintName: uk_exchange_rates_pair_date
+            tableName: exchange_rates
+            columnNames: currency_pair, rate_date
+
+        - createIndex:
+            indexName: idx_rates_pair_date
+            tableName: exchange_rates
+            columns:
+              - column:
+                  name: currency_pair
+              - column:
+                  name: rate_date

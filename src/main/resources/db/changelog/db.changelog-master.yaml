@@ -1,0 +1,10 @@
+databaseChangeLog:
+  - include:
+      file: changes/001-create-transaction-records.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: changes/002-create-expense-limits.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: changes/003-create-exchange-rates.yaml
+      relativeToChangelogFile: true

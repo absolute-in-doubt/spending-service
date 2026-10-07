@@ -1,0 +1,83 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-create-transaction-records
+      author: spending-service
+      changes:
+        - createSequence:
+            sequenceName: transaction_record_seq
+            startValue: 1
+            incrementBy: 1
+
+        - createTable:
+            tableName: transaction_records
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  defaultValueComputed: nextval('transaction_record_seq')
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_transaction_records
+                    nullable: false
+              - column:
+                  name: account_from
+                  type: VARCHAR(10)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: account_to
+                  type: VARCHAR(10)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: currency_shortname
+                  type: VARCHAR(3)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: sum
+                  type: NUMERIC(19, 2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: expense_category
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: datetime
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: limit_exceeded
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: version
+                  type: BIGINT
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+
+        - createIndex:
+            indexName: idx_tr_account_category_datetime
+            tableName: transaction_records
+            columns:
+              - column:
+                  name: account_from
+              - column:
+                  name: expense_category
+              - column:
+                  name: datetime
+
+        - createIndex:
+            indexName: idx_tr_account_limit_exceeded
+            tableName: transaction_records
+            columns:
+              - column:
+                  name: account_from
+              - column:
+                  name: limit_exceeded
