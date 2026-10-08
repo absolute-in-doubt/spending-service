@@ -2,11 +2,12 @@ package com.example.spending.service.infrastructure.repository;
 
 import com.example.spending.service.domain.model.AccountNumber;
 import com.example.spending.service.domain.model.ExpenseCategory;
-import com.example.spending.service.domain.model.TransactionRecord;
-import com.example.spending.service.domain.repository.TransactionRecordRepository;
-import com.example.spending.service.infrastructure.mapper.TransactionRecordMapper;
+import com.example.spending.service.domain.model.TransactionOperation;
+import com.example.spending.service.domain.repository.TransactionOperationRepository;
+import com.example.spending.service.infrastructure.mapper.TransactionOperationMapper;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
+import org.jooq.Field;
 import org.jooq.impl.DSL;
 import org.jooq.impl.SQLDataType;
 import org.springframework.stereotype.Repository;
@@ -21,13 +22,13 @@ import static com.example.spending.service.infrastructure.jooq.Tables.TRANSACTIO
 
 @Repository
 @RequiredArgsConstructor
-public class JooqTransactionRecordRepository implements TransactionRecordRepository {
+public class JooqTransactionOperationRepository implements TransactionOperationRepository {
 
     private final DSLContext dsl;
-    private final TransactionRecordMapper mapper;
+    private final TransactionOperationMapper mapper;
 
     @Override
-    public TransactionRecord save(TransactionRecord transaction) {
+    public TransactionOperation save(TransactionOperation transaction) {
         var record = dsl.insertInto(TRANSACTION_RECORDS)
                 .set(TRANSACTION_RECORDS.ACCOUNT_FROM, transaction.getAccountFrom().value())
                 .set(TRANSACTION_RECORDS.ACCOUNT_TO, transaction.getAccountTo().value())
@@ -44,22 +45,27 @@ public class JooqTransactionRecordRepository implements TransactionRecordReposit
     }
 
     @Override
-    public Optional<TransactionRecord> findById(Long id) {
+    public Optional<TransactionOperation> findById(Long id) {
         return dsl.selectFrom(TRANSACTION_RECORDS)
                 .where(TRANSACTION_RECORDS.ID.eq(id))
                 .fetchOptional(mapper);
     }
 
-    @Override
+    @Override  // what is this?
     public void lockAccount(AccountNumber accountFrom) {
         dsl.execute("SELECT pg_advisory_xact_lock(hashtext(?))", accountFrom.value());
     }
 
     @Override
     public BigDecimal sumMonthlyExpensesInUsd(AccountNumber accountFrom, ExpenseCategory category, OffsetDateTime from, OffsetDateTime to) {
+        Field<BigDecimal> effectiveRate = DSL.coalesce(
+                EXCHANGE_RATES.CLOSE_RATE,
+                DSL.coalesce(EXCHANGE_RATES.PREVIOUS_CLOSE_RATE, BigDecimal.ONE)
+        );
+
         BigDecimal sum = dsl.select(DSL.coalesce(DSL.sum(
                         DSL.when(TRANSACTION_RECORDS.CURRENCY_SHORTNAME.eq("USD"), TRANSACTION_RECORDS.SUM)
-                                .otherwise(TRANSACTION_RECORDS.SUM.mul(DSL.coalesce(EXCHANGE_RATES.CLOSE_RATE, BigDecimal.ONE)))
+                                .otherwise(TRANSACTION_RECORDS.SUM.mul(effectiveRate))
                 ), BigDecimal.ZERO))
                 .from(TRANSACTION_RECORDS)
                 .leftJoin(EXCHANGE_RATES)
@@ -68,14 +74,14 @@ public class JooqTransactionRecordRepository implements TransactionRecordReposit
                 .where(TRANSACTION_RECORDS.ACCOUNT_FROM.eq(accountFrom.value()))
                 .and(TRANSACTION_RECORDS.EXPENSE_CATEGORY.eq(category.getCode()))
                 .and(TRANSACTION_RECORDS.DATETIME.ge(from))
-                .and(TRANSACTION_RECORDS.DATETIME.lt(to))
+                .and(TRANSACTION_RECORDS.DATETIME.le(to))
                 .fetchOne(0, BigDecimal.class);
 
         return sum != null ? sum : BigDecimal.ZERO;
     }
 
     @Override
-    public List<TransactionRecord> findExceededTransactions(AccountNumber accountFrom) {
+    public List<TransactionOperation> findExceededTransactions(AccountNumber accountFrom) {
         return dsl.selectFrom(TRANSACTION_RECORDS)
                 .where(TRANSACTION_RECORDS.ACCOUNT_FROM.eq(accountFrom.value()))
                 .and(TRANSACTION_RECORDS.LIMIT_EXCEEDED.isTrue())
