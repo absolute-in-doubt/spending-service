@@ -1,7 +1,19 @@
 spring:
   application:
     name: spending.service
+  datasource:
+    url: ${POSTGRES_URL:jdbc:postgresql://postgres:5432/spending_service_db}
+    username: ${POSTGRES_USER:myuser}
+    password: ${POSTGRES_PASSWORD:secret}
   liquibase:
     change-log: classpath:/db/changelog/db.changelog-master.yaml
     enabled: true
 
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+
+server:
+  port: 8080
