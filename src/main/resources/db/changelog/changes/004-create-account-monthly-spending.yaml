@@ -1,0 +1,40 @@
+databaseChangeLog:
+  - changeSet:
+      id: 004-create-account-monthly-spending
+      author: spending-service
+      changes:
+        - createTable:
+            tableName: account_monthly_spending
+            columns:
+              - column:
+                  name: account_from
+                  type: VARCHAR(10)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: expense_category
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: year_month
+                  type: VARCHAR(7)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: total_spent_usd
+                  type: NUMERIC(19, 2)
+                  defaultValueNumeric: 0.00
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - addPrimaryKey:
+            constraintName: pk_account_monthly_spending
+            tableName: account_monthly_spending
+            columnNames: account_from, expense_category, year_month
