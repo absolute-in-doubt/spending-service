@@ -15,9 +15,5 @@ public interface TransactionOperationRepository {
 
     Optional<TransactionOperation> findById(Long id);
 
-    void lockAccount(AccountNumber accountFrom);
-
-    BigDecimal sumMonthlyExpensesInUsd(AccountNumber accountFrom, ExpenseCategory category, OffsetDateTime from, OffsetDateTime to);
-
     List<TransactionOperation> findExceededTransactions(AccountNumber accountFrom);
 }
