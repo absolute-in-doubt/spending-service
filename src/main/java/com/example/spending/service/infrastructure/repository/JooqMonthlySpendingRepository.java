@@ -40,7 +40,7 @@ public class JooqMonthlySpendingRepository implements MonthlySpendingRepository 
                 .where(ACCOUNT_MONTHLY_SPENDING.ACCOUNT_FROM.eq(accountFrom.value()))
                 .and(ACCOUNT_MONTHLY_SPENDING.EXPENSE_CATEGORY.eq(category.getCode()))
                 .and(ACCOUNT_MONTHLY_SPENDING.YEAR_MONTH.eq(ym))
-                .forUpdate()
+                .forUpdate() // locking it pessimistically
                 .fetchOne(mapper);
     }
 
