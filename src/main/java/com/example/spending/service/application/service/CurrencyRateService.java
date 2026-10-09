@@ -30,6 +30,10 @@ public class CurrencyRateService {
      * @param currencyPair the currency pair (e.g., "KZT/USD")
      * @param date         the date for which the rate is requested
      * @return an Optional containing the ExchangeRate if found or fetched, or Optional.empty()
+     *
+     * NOTE: in case two threads try to fetch the same exchangeRate from the API and persist it to the DB, one of them
+     * will fail with PK constraint violation exception and will fallback to reading an effective rate,
+     * which will return the newly rate (the one persisted by the other thread)
      */
     public Optional<ExchangeRate> getOrFetchRate(String currencyPair, LocalDate date) {
         Objects.requireNonNull(currencyPair, "Currency pair must not be null");
