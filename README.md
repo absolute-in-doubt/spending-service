@@ -1,228 +1,87 @@
 # Spending Limit Service (`spending.service`)
 
-Микросервис банковского учета расходов клиентов и контроля месячных лимитов в валюте USD. Разработан в соответствии с требованиями [Task.pdf](file:///C:/java-workspace/spending.service/temp/Task.pdf).
-
-Сервис отслеживает транзакции клиентов в реальном времени в различных валютах (KZT, RUB, USD), конвертирует их в доллары США по биржевым курсам, проверяет превышение установленных месячных лимитов по категориям расходов (`product`, `service`) и предоставляет API для клиентов и банковских систем.
+Сервис учета расходов клиентов и контроля месячных лимитов в USD. Обрабатывает транзакции в реальном времени (KZT, RUB, USD), конвертирует их по курсам Twelve Data, отслеживает месячные лимиты по категориям (`product`, `service`) и сохраняет историю операций.
 
 ---
 
-## Содержание
+## 1. Стек технологий
 
-1. [Технологический стек](#1-технологический-стек)
-2. [Архитектура приложения](#2-архитектура-приложения)
-3. [Быстрый запуск](#3-быстрый-запуск)
-4. [Документация REST API](#4-документация-rest-api)
-5. [Ключевые инженерные решения и инварианты](#5-ключевые-инженерные-решения-и-инварианты)
-   * [Часовой пояс и границы месяца](#часовой-пояс-и-границы-месяца-требование-4)
-   * [Отказоустойчивость внешнего API и стратегия Zero Data Loss (DLQ)](#отказоустойчивость-внешнего-api-и-стратегия-zero-data-loss-dlq-требование-3)
-   * [Многопоточность и защита от Race Conditions](#многопоточность-и-защита-от-race-conditions-требование-4)
-   * [Оптимизация SQL-запроса получения превышенных транзакций](#оптимизация-sql-запроса-получения-превышенных-транзакций-требование-6)
-6. [Тестирование и QA](#6-тестирование-и-qa)
-7. [AI в проекте (Требование 9)](#7-ai-в-проекте-требование-9)
+* **Java 21 LTS** (Records, Virtual Threads)
+* **Spring Boot 4.1.1** (Web MVC, ProblemDetail RFC 9457)
+* **PostgreSQL 15+ & jOOQ 3.19.16** (типобезопасный SQL, транзакции, `FOR UPDATE`)
+* **Liquibase 4.29.2** (YAML change-sets)
+* **Resilience4j 2.2.0** (CircuitBreaker, RateLimiter)
+* **Тесты:** JUnit 5, AssertJ, Testcontainers (PostgreSQL), WireMock 3.13.0
 
 ---
 
-## 1. Технологический стек
+## 2. Архитектура
 
-* **Язык:** Java 21 LTS (Records, Sealed Interfaces, Pattern Matching, Virtual Threads)
-* **Фреймворк:** Spring Boot 4.1.1 (Spring Web MVC с включенными виртуальными потоками, Bean Validation, RFC 9457 `ProblemDetail`)
-* **База данных:** PostgreSQL 15+
-* **SQL & ORM:** jOOQ 3.19.16 (типобезопасные SQL-запросы, транзакции, пессимистические блокировки)
-* **Миграции:** Liquibase 4.29.2 (schema-first подход, YAML change-sets)
-* **Отказоустойчивость:** Resilience4j 2.2.0 (`@CircuitBreaker`, `@RateLimiter`)
-* **HTTP-клиент:** Spring 6.2 `RestClient` с настроенными таймаутами
-* **Документация API:** SpringDoc OpenAPI 2.8.5 (Swagger UI)
-* **Тестирование:** JUnit 5, AssertJ, Mockito, Testcontainers (`@ServiceConnection` для PostgreSQL), WireMock 3.13.0
+Гексагональная архитектура (Ports & Adapters) с изоляцией доменной логики (DDD):
+
+* `domain`: чистая бизнес-логика ([`ExpenseLimitDomainService`](file:///src/main/java/com/example/spending/service/domain/service/ExpenseLimitDomainService.java), [`CurrencyConversionService`](file:///src/main/java/com/example/spending/service/domain/service/CurrencyConversionService.java)), сущности и Value Objects (`AccountNumber`, `CurrencyCode`, `ExpenseCategory`). Никаких зависимостей от Spring или базы данных.
+* `application`: юзкейсы ([`TransactionOperationService`](file:///src/main/java/com/example/spending/service/application/service/TransactionOperationService.java), [`ExpenseLimitService`](file:///src/main/java/com/example/spending/service/application/service/ExpenseLimitService.java)), оркестрация транзакций и восстановление отложенных платежей.
+* `infrastructure`: входящие REST-контроллеры, jOOQ-репозитории, HTTP-клиент к Twelve Data и фоновые воркеры ([`UnprocessedTransactionWorker`](file:///src/main/java/com/example/spending/service/infrastructure/worker/UnprocessedTransactionWorker.java), [`CurrencyRateSyncWorker`](file:///src/main/java/com/example/spending/service/infrastructure/worker/CurrencyRateSyncWorker.java)).
 
 ---
 
-## 2. Архитектура приложения
+## 3. Запуск и API
 
-Проект построен по принципам **Гексагональной архитектуры (Ports & Adapters)** и **Domain-Driven Design (DDD)**:
-
-```mermaid
-flowchart TD
-    subgraph Driving ["Входящие адаптеры (infrastructure.adapter.in.rest)"]
-        TC["TransactionController\nPOST /api/v1/transactions"]
-        CC["ClientController\nPOST /api/v1/limits\nGET /api/v1/limits\nGET /api/v1/transactions/exceeded"]
-    end
-
-    subgraph PortsIn ["Входящие порты (application.port.in)"]
-        TxPort["TransactionOperationUseCase"]
-        LimitPort["ExpenseLimitUseCase"]
-    end
-
-    subgraph Core ["Ядро приложения (application & domain)"]
-        TxService["TransactionOperationServiceImpl"]
-        LimitService["ExpenseLimitServiceImpl"]
-        RateService["CurrencyRateServiceImpl"]
-        DomainEval["ExpenseLimitDomainService\n(Чистая доменная логика)"]
-    end
-
-    subgraph PortsOut ["Исходящие порты (application.port.out & domain.repository)"]
-        OutRatePort["CurrencyRateApiClient"]
-        RepoPorts["TransactionRecordRepository\nExpenseLimitRepository\nMonthlySpendingRepository\nUnprocessedTransactionRepository"]
-    end
-
-    subgraph Driven ["Исходящие адаптеры (infrastructure.adapter.out)"]
-        Twelve["TwelveDataApiClient\n(Twelve Data API + Resilience4j)"]
-        JooqRepos["jOOQ Репозитории\n(PostgreSQL)"]
-    end
-
-    TC --> TxPort --> TxService
-    CC --> LimitPort --> LimitService
-    TxService --> DomainEval
-    TxService --> OutRatePort --> Twelve
-    TxService --> RepoPorts --> JooqRepos
-    RateService --> RepoPorts
-```
-
-* **`domain`**: Изолирован от Spring и баз данных. Содержит сущности (`TransactionRecord`, `ExpenseLimit`, `ExchangeRate`), Value Objects (`AccountNumber`, `CurrencyCode`, `ExpenseCategory`), чистые сервисы (`ExpenseLimitDomainService`) и интерфейсы репозиториев.
-* **`application`**: Варианты использования (use cases), координация транзакций, кэширование и восстановление отложенных операций (DLQ recovery).
-* **`infrastructure`**: Реализация портов: REST-контроллеры, jOOQ-репозитории, HTTP-клиенты к биржам, фоновые воркеры (`UnprocessedTransactionWorker`).
-
----
-
-## 3. Быстрый запуск
-
-### Вариант A: Запуск через Docker Compose (Рекомендуемый)
-
-Для запуска приложения вместе с PostgreSQL одной командой:
-
+### Запуск через Docker Compose:
 ```bash
 docker compose up --build
 ```
-
-Сервис будет доступен по адресу `http://localhost:8080`.
-
-### Вариант B: Локальный запуск через Maven
-
-1. Запустите только базу данных:
-   ```bash
-   docker compose up -d postgres
-   ```
-2. Запустите Spring Boot приложение:
-   ```bash
-   ./mvnw spring-boot:run
-   # Либо на Windows:
-   mvn spring-boot:run
-   ```
-
-### Swagger UI и OpenAPI
-
-После запуска сервиса интерактивная документация доступна по ссылкам:
+Сервис доступен на `http://localhost:8080`.
 * **Swagger UI:** [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
 * **OpenAPI JSON:** [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs)
 
----
-
-## 4. Документация REST API
-
-### 1. Регистрация транзакции
-* **Метод:** `POST /api/v1/transactions`
-* **Назначение:** Прием расходной операции от банковской системы в реальном времени.
-
-**Тело запроса:**
-```json
-{
-  "account_from": "0000000123",
-  "account_to": "9999999999",
-  "currency_shortname": "USD",
-  "sum": 500.00,
-  "expense_category": "product",
-  "datetime": "2022-01-02T10:00:00Z"
-}
-```
-
-**Ответ (200 OK):**
-```json
-{
-  "id": 1,
-  "account_from": "0000000123",
-  "account_to": "9999999999",
-  "currency_shortname": "USD",
-  "sum": 500.00,
-  "expense_category": "product",
-  "datetime": "2022-01-02T10:00:00Z",
-  "limit_exceeded": false
-}
-```
+### Основные эндпоинты:
+* `POST /api/transactions` — регистрация транзакции в реальном времени. Возвращает сохраненную транзакцию и флаг `limit_exceeded`.
+* `POST /api/client/limits` — установка нового месячного лимита в USD (дата установления выставляется текущим системным временем).
+* `GET /api/client/limits?account_from={acc}` — история всех лимитов клиента.
+* `GET /api/client/transactions/exceeded?account_from={acc}` — список транзакций с `limit_exceeded = true`, дополненных данными лимита, действовавшего на момент каждой транзакции.
 
 ---
 
-### 2. Установление нового месячного лимита
-* **Метод:** `POST /api/v1/limits`
-* **Назначение:** Установление клиентом нового лимита на расходы в USD. Дата установления выставляется микросервисом автоматически по текущему системному времени (`java.time.Clock`).
+## 4. Инженерные решения
 
-**Тело запроса:**
-```json
-{
-  "account_from": "0000000123",
-  "expense_category": "product",
-  "limit_sum": 2000.00
-}
-```
+### 1. Почему jOOQ, а не Hibernate
+Для этой задачи традиционный ORM — неподходящий инструмент:
+* **Сложные агрегации и соединения:** поиск активного лимита на момент транзакции требует `JOIN LATERAL ... ORDER BY limit_datetime DESC LIMIT 1`. В JPQL/HQL это либо невозможно, либо порождает неэффективные подзапросы и N+1.
+* **Специфика Postgres:** jOOQ дает прямой доступ к `INSERT ... ON CONFLICT DO NOTHING`, точечным `SELECT ... FOR UPDATE` и оконным функциям.
+* **Специфика данных:** транзакции и лимиты — это неизменяемый финансовый лог (append-only ledger). Оверхед Hibernate на dirty checking, entity lifecycle и Session cache здесь полностью бесполезен.
 
-**Ответ (200 OK):**
-```json
-{
-  "id": 2,
-  "account_from": "0000000123",
-  "expense_category": "product",
-  "limit_sum": 2000.00,
-  "limit_currency_shortname": "USD",
-  "limit_datetime": "2022-01-10T12:00:00Z"
-}
-```
+### 2. Дефолтные лимиты не хранятся в БД
+По ТЗ дефолтный лимит равен $1000.00 USD. Мы **не создаем** дефолтные строки в таблице `expense_limits`:
+* Создание записи на каждый новый аккаунт и категорию привело бы к миллионам дубликатов $1000.
+* Это раздувает таблицы, забивает B-tree индексы и вымывает полезные данные из buffer pool в Postgres.
+* Вместо этого дефолт подставляется в доменном сервисе «на лету», если в БД не найдено ни одного пользовательского лимита.
 
----
+### 3. Отсутствие внешних ключей (FK) на `account_from`
+Банковский счет принадлежит отдельному микросервису (Core Banking / Account Service), работающему на другом сервере со своей БД (паттерн **Database-per-Service**). Внешние ключи между сервисами физически невозможны и нарушают границы Bounded Context. На нашем уровне `account_from` валидируется регулярным выражением (10 цифр), представлен Value Object `AccountNumber` и индексирован B-tree.
 
-### 3. Получение списка транзакций, превысивших лимит
-* **Метод:** `GET /api/v1/transactions/exceeded?account_from=0000000123`
-* **Назначение:** Возврат всех транзакций клиента с флагом `limit_exceeded = true`, дополненных метаданными активного на момент совершения операции лимита (требование 6).
+### 4. Часовой пояс — строго UTC (Требование 4)
+Клиентские транзакции приходят с произвольными смещениями (например, `-05:00` или `+06:00`). Чтобы границы месяцев (`startOfMonth`, `startOfNextMonth`) считались детерминированно и одинаково для всех, все даты приводятся к **UTC (`ZoneOffset.UTC`)**.
 
-**Ответ (200 OK):**
-```json
-[
-  {
-    "id": 2,
-    "account_from": "0000000123",
-    "account_to": "9999999999",
-    "currency_shortname": "USD",
-    "sum": 600.00,
-    "expense_category": "product",
-    "datetime": "2022-01-03T10:00:00Z",
-    "limit_sum": 1000.00,
-    "limit_datetime": "2022-01-01T00:00:00Z",
-    "limit_currency_shortname": "USD"
-  }
-]
-```
+### 5. DLQ и семантика 503 Service Unavailable (Zero Data Loss)
+Если биржевой курс недоступен (биржа упала или лимит запросов исчерпан), а в кэше БД курса нет:
+* **Транзакция принимается и сохраняется** в `unprocessed_transactions` со статусом `PENDING`. Никакие данные не теряются.
+* Клиенту отдается `503 Service Unavailable` (RFC 9457 `ProblemDetail`) с полем `unprocessed_transaction_id` — сигнал о том, что транзакция принята, но будет обработана асинхронно.
+* Фоновый воркер [`UnprocessedTransactionWorker`](file:///src/main/java/com/example/spending/service/infrastructure/worker/UnprocessedTransactionWorker.java) с распределенной блокировкой (lease duration) периодически опрашивает курс и завершает проведение накопившихся операций.
 
----
+### 6. Каскадный DLQ: выбор Consistency over Availability
+Если у счета хотя бы одна операция зависла в DLQ, **все последующие транзакции этого счета также направляются в DLQ**, а не проводятся сразу.
+* *Почему:* если транзакция №1 на $1100 ушла в DLQ из-за курса, а следом пришла транзакция №2 на $50, мы не имеем права одобрить №2 со статусом `limit_exceeded = false`. Иначе, когда воркер проведет №1, хронология и статусы лимитов задним числом сломаются.
+* Мы выбираем строгую согласованность (Consistency): все зависимые транзакции паркуются и проводятся воркером строго FIFO.
 
-## 5. Ключевые инженерные решения и инварианты
+### 7. Почему READ COMMITTED, а не REPEATABLE READ
+Для защиты от race conditions мы блокируем строку в `account_monthly_spending` через `SELECT ... FOR UPDATE`.
+* В Postgres при дефолтном **`READ COMMITTED`**, когда параллельная транзакция ждет освобождения блокировки, после коммита первой транзакции она **перечитывает строку и видит актуальный `total_spent_usd`**.
+* При `REPEATABLE READ` или `SERIALIZABLE` Postgres выбросил бы ошибку `40001 serialization_failure`, заставив нас городить retry-циклы и ловить retry storms под нагрузкой.
+* `READ COMMITTED` + `FOR UPDATE` дает стопроцентную сериализуемость по счету без накладных расходов.
 
-### Часовой пояс и границы месяца (Требование 4)
-* **Решение:** Все операции по расчету границ календарного месяца (`startOfMonth`, `startOfNextMonth`) строго нормализуются к **UTC (`ZoneOffset.UTC`)**.
-* **Обоснование:** Транзакции поступают от клиентов с произвольными смещениями часовых поясов (например, `2022-01-31T23:30:00-05:00` или `2022-02-01T02:00:00+06:00`). Приведение к единому часовому поясу UTC гарантирует детерминированный учет расходов в пределах единого календарного окна без искажений на стыках месяцев.
-
-### Отказоустойчивость внешнего API и стратегия Zero Data Loss (DLQ) (Требование 3)
-* **Кэширование:** Применяется паттерн **Cache-Aside**. Полученные курсы сохраняются в таблицу `exchange_rates` и используются повторно.
-* **Выходные дни:** Если биржа закрыта (`close` отсутствует), сервис автоматически использует курс последнего закрытия (`previous_close`).
-* **Таймауты и Circuit Breaker:** Для HTTP-клиента настроены таймауты: подключение — 1с, чтение — 2с. Запросы защищены Circuit Breaker и Rate Limiter (Resilience4j).
-* **Стратегия сохранения данных (Zero Data Loss):**
-  * Если внешний биржевой API недоступен (5xx, таймаут), а в БД нет курса, **транзакция никогда не теряется**.
-  * Она немедленно сохраняется в таблицу `unprocessed_transactions` (Dead Letter Queue) со статусом `PENDING`.
-  * Клиент получает информативную ошибку `503 Service Unavailable` в формате RFC 9457 `ProblemDetail` с указанием идентификатора отложенной записи `unprocessed_transaction_id`.
-  * Фоновый воркер [`UnprocessedTransactionWorker`](file:///src/main/java/com/example/spending/service/infrastructure/worker/UnprocessedTransactionWorker.java) с распределенной блокировкой (lease duration) периодически повторяет попытки получения курсов валют и автоматически проводит накопившиеся операции в строгом хронологическом порядке (FIFO).
-
-### Многопоточность и защита от Race Conditions (Требование 4)
-* **Решение:** Пессимистическая построчная блокировка `SELECT ... FOR UPDATE` в jOOQ на уровне таблицы агрегированных месячных расходов `account_monthly_spending`.
-* **Обоснование:** При одновременном поступлении нескольких параллельных транзакций одного клиента два запроса не могут прочитать одинаковый остаток лимита. Транзакции сериализуются на уровне строки конкретного счета и категории расходов. Корректность подтверждена многопоточным тестом [`ConcurrencyIntegrationTest`](file:///src/test/java/com/example/spending/service/e2e/ConcurrencyIntegrationTest.java) (10 параллельных потоков без утери обновлений).
-
-### Оптимизация SQL-запроса получения превышенных транзакций (Требование 6)
-Для выполнения требования п. 6 реализован эффективный SQL-запрос на jOOQ:
+### 8. Оптимизированный запрос превышенных транзакций (Требование 6)
+Для выборки превышенных транзакций с их историческим лимитом используется `JOIN LATERAL`:
 ```sql
 SELECT tr.*, l.limit_sum, l.limit_datetime, l.currency_shortname
 FROM transaction_records tr
@@ -238,62 +97,45 @@ JOIN LATERAL (
 WHERE tr.account_from = ? AND tr.limit_exceeded = true
 ORDER BY tr.datetime ASC;
 ```
-Фильтрация по `account_from` и `limit_exceeded = true` выполняется на самом раннем этапе, исключая сканирование всей таблицы транзакций (`Seq Scan`).
+Фильтр по `account_from` и `limit_exceeded = true` применяется сразу, исключая full scan таблицы транзакций.
 
 ---
 
-## 6. Тестирование и QA
+## 5. Тестирование
 
-Тестовое покрытие включает **63 автоматических теста** (54 модульных и 9 сквозных интеграционных):
-
+71 тест (модульные + интеграционные с Testcontainers и WireMock):
 ```bash
-# Запуск полного набора тестов
 mvn test
 ```
-
-### Структура интеграционных тестов:
-1. [`KeyScenarioE2EIntegrationTest`](file:///src/test/java/com/example/spending/service/e2e/KeyScenarioE2EIntegrationTest.java) — **Сквозной автотест ключевого сценария (Требование 6, «1 случай» из Task.pdf):**
-   * Развертывание Spring Boot с реальным HTTP-портом (`RANDOM_PORT`), Testcontainers PostgreSQL и WireMock.
-   * Полное воспроизведение сценария 1–13 января (установка лимита $1000, превышение на $600, обновление лимита до $2000 10 января, успешное проведение транзакций 11–13 января и превышение лимита второй транзакцией 13 января).
-2. [`BoundaryAndEdgeCasesIntegrationTest`](file:///src/test/java/com/example/spending/service/e2e/BoundaryAndEdgeCasesIntegrationTest.java) — «2 случай» из таблицы, строгая проверка границ ($1000.00 не превышает, $1000.01 превышает), автоматический сброс расходов при переходе на новый месяц и дефолтный лимит $1000 USD.
-3. [`CurrencyAndResilienceIntegrationTest`](file:///src/test/java/com/example/spending/service/e2e/CurrencyAndResilienceIntegrationTest.java) — Конвертация KZT/USD, fallback на `previous_close` в выходные дни, изоляция DLQ и восстановление воркером.
-4. [`ConcurrencyIntegrationTest`](file:///src/test/java/com/example/spending/service/e2e/ConcurrencyIntegrationTest.java) — Тестирование конкурентной нагрузки (10 потоков, ровно 5 транзакций одобрено, ровно 5 превышено).
+* `KeyScenarioE2EIntegrationTest` — сквозной тест сценария 1–13 января из ТЗ (случай 1).
+* `BoundaryAndEdgeCasesIntegrationTest` — краевые условия лимитов ($1000.00 vs $1000.01), сброс месяца, дефолтный лимит (случай 2).
+* `CurrencyAndResilienceIntegrationTest` — конвертация валют, fallback на `previous_close` в выходные, парковка в DLQ и восстановление воркером.
+* `ConcurrencyIntegrationTest` — 10 параллельных потоков на один счет: ровно 5 транзакций проходят, ровно 5 превышают лимит, без гонок и дублей.
 
 ---
 
-## 7. AI в проекте (Требование 9)
+## 6. AI в проекте
 
-### 1. Какой AI-инструмент использовался
-* **Инструмент:** **Antigravity CLI (AGY)** на базе продвинутых моделей Google Gemini.
-* **Сфера применения:** Проектирование гексагональной архитектуры, генерация автотестов с Testcontainers и WireMock, написание Liquibase-миграций, отладка краевых условий бизнес-логики и форматирование документации по открытым стандартам.
+* **Инструмент:** Antigravity CLI (AGY) на базе моделей Google Gemini.
+* **MCP:** PostgreSQL MCP Server ([`.agents/mcp_config.json`](file:///.agents/mcp_config.json)) для инспекции схемы БД, индексов и плана запросов.
+* **Скилл:** [`.agents/skills/add-currency-provider/SKILL.md`](file:///.agents/skills/add-currency-provider/SKILL.md) — шаблон для подключения нового провайдера котировок (порт, адаптер, DTO, Resilience4j, WireMock).
+* **Что писалось вручную:** доменное ядро ([`ExpenseLimitDomainService`](file:///src/main/java/com/example/spending/service/domain/service/ExpenseLimitDomainService.java), [`DateTimeUtils`](file:///src/main/java/com/example/spending/service/domain/util/DateTimeUtils.java)), бизнес-инварианты, Liquibase-миграции, правила UTC.
+* **Исправленные ошибки AI:**
+  1. Верхний регистр в jOOQ генераторе (`"EXCHANGE_RATES"` ломал запросы в Postgres) — исправлен через `JooqConfig` (`RenderNameCase.LOWER`).
+  2. Неэффективный подзапрос в `findExceededTransactionsWithLimit` — фильтр по счету перенесен внутрь `JOIN LATERAL`.
+  3. Ошибка перехвата 503 в тестах — исправлено на `HttpServerErrorException` вместо `HttpClientErrorException`.
+  4. Символы Twelve Data — AI не учел, что на бирже торгуются пары `USD/KZT` и `USD/RUB`, а не обратные; добавлена инверсия курсов (`1 / rate`), параметр `interval=1day` и перехват 4xx.
 
-### 2. Подключенный MCP-сервер и пример задачи
-* **Сервер:** **PostgreSQL MCP Server** (`@modelcontextprotocol/server-postgres`), настроенный в [`.agents/mcp_config.json`](file:///.agents/mcp_config.json) и [`.mcp.json`](file:///.mcp.json).
-* **Безопасность:** Конфигурация не содержит захардкоженных секретов и считывает параметры из переменных окружения (`${POSTGRES_USER}`, `${POSTGRES_PASSWORD}`, `${POSTGRES_DB}`).
-* **Практический пример задачи:** MCP-сервер использовался для инспекции реальной схемы таблиц в PostgreSQL, проверки внешних ключей и анализа производительности SQL-запроса `findExceededTransactionsWithLimit` в jOOQ. С помощью MCP было подтверждено, что план выполнения запроса эффективно использует составной индекс `idx_transactions_acc_cat_dt` и не сканирует лишние строки при соединении с таблицей лимитов.
+---
 
-### 3. Как применять разработанный AI-скилл
-* **Скилл:** [`.agents/skills/add-currency-provider/SKILL.md`](file:///.agents/skills/add-currency-provider/SKILL.md) (открытый стандарт Agent Skills, [agentskills.io](https://agentskills.io)).
-* **Как активировать:** Любой AI-агент (Antigravity, Codex, Cursor, Claude Code, Copilot) автоматически распознает скилл при запросе:
-  > *"Добавь нового поставщика котировок валют AlphaVantage в spending.service"*
-* Скилл содержит пошаговую инструкцию по реализации порта [`CurrencyRateApiClient`](file:///src/main/java/com/example/spending/service/application/port/out/CurrencyRateApiClient.java), маппингу котировок с учетом праздников и выходных, подключению Circuit Breaker и написанию WireMock-тестов.
+## 7. Оценка трудоёмкости
 
-### 4. Что написано вручную
-* Архитектурное ядро чистой доменной модели (`ExpenseLimitDomainService`, `DateTimeUtils`).
-* Бизнес-инварианты: правила неизменяемости исторических лимитов и сброса месячных накоплений при сохранении действующего лимита.
-* Спецификация Liquibase изменений (`001-005.yaml`) со строгими ограничениями целостности.
-* Контроль за часовыми поясами (принудительная нормализация к UTC).
-
-### 5. Где AI ошибся и как это было замечено и исправлено
-1. **Регистр имен идентификаторов в jOOQ и PostgreSQL:**
-   * *Ошибка:* jOOQ при компиляции со стандартным генератором формировал экранированные запросы в верхнем регистре (`SELECT * FROM "EXCHANGE_RATES"`), что вызывало ошибку PostgreSQL `relation "EXCHANGE_RATES" does not exist`.
-   * *Как замечено:* При запуске первых интеграционных тестов с Testcontainers.
-   * *Исправление:* Разработан конфигурационный класс [`JooqConfig`](file:///src/main/java/com/example/spending/service/infrastructure/config/JooqConfig.java), принудительно задающий `RenderNameCase.LOWER` и `RenderQuotedNames.EXPLICIT_DEFAULT_UNQUOTED`.
-2. **Неэффективный подзапрос в выборке превышенных транзакций:**
-   * *Ошибка:* Изначально предложенный AI подзапрос группировал и выбирал максимальные лимиты по всей таблице транзакций базы данных без предварительной фильтрации по номеру счета клиента.
-   * *Как замечено:* При ручном код-ревью реализации репозитория. На больших объемах данных это привело бы к деградации производительности (`Seq Scan` всей таблицы).
-   * *Исправление:* Фильтр `where(tr.ACCOUNT_FROM.eq(accountFrom))` был перенесен непосредственно внутрь подзапроса.
-3. **Иерархия исключений Spring RestClient:**
-   * *Ошибка:* При симуляции 503 ошибки внешнего API в тестах DLQ агент ожидал перехвата `HttpClientErrorException.ServiceUnavailable` (4xx), тогда как код 503 относится к классу `HttpServerErrorException.ServiceUnavailable` (5xx).
-   * *Как замечено:* Падение интеграционного теста `CurrencyAndResilienceIntegrationTest` с `AssertionFailedError`.
-   * *Исправление:* Тип ожидаемого исключения в тесте скорректирован на `HttpServerErrorException.ServiceUnavailable`.
+| Этап работ | Описание |        Оценка         |
+| :--- | :--- |:---------------------:|
+| 1. Архитектура и БД | Схема БД, Liquibase, jOOQ генерация, доменная модель (DDD) |          4 ч          |
+| 2. REST API | Контроллеры, Bean Validation, ProblemDetail RFC 9457 |          3 ч          |
+| 3. Интеграция с биржей | Twelve Data, кэш в БД, fallback на выходные, Resilience4j |          4 ч          |
+| 4. Конкурентность и DLQ | Блокировки `FOR UPDATE`, таблица `unprocessed_transactions`, воркер |          4 ч          |
+| 5. Тестирование | Unit-тесты, E2E (ТЗ п. 6), тесты конкурентности с Testcontainers |          6 ч          |
+| 6. Документация и AI | AI-скилл, MCP, OpenAPI/Swagger, README.md |          2 ч          |
+| **ИТОГО** | | **23 ч** около 3 дней |
