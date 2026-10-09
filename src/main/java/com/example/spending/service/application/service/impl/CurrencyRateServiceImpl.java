@@ -1,6 +1,7 @@
 package com.example.spending.service.application.service.impl;
 
 import com.example.spending.service.application.port.out.CurrencyRateApiClient;
+import com.example.spending.service.application.service.CurrencyRateService;
 import com.example.spending.service.domain.model.ExchangeRate;
 import com.example.spending.service.domain.repository.ExchangeRateRepository;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +20,7 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class CurrencyRateServiceImpl {
+public class CurrencyRateServiceImpl implements CurrencyRateService {
 
     private final ExchangeRateRepository exchangeRateRepository;
     private final CurrencyRateApiClient currencyRateApiClient;
