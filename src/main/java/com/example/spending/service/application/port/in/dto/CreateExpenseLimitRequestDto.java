@@ -1,4 +1,4 @@
-package com.example.spending.service.application.dto;
+package com.example.spending.service.application.port.in.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.DecimalMin;

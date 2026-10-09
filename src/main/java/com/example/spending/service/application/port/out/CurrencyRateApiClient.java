@@ -1,4 +1,4 @@
-package com.example.spending.service.application.port;
+package com.example.spending.service.application.port.out;
 
 import com.example.spending.service.domain.model.ExchangeRate;
 

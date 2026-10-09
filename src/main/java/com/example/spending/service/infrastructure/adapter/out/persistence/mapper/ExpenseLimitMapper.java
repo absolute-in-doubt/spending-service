@@ -1,4 +1,4 @@
-package com.example.spending.service.infrastructure.mapper;
+package com.example.spending.service.infrastructure.adapter.out.persistence.mapper;
 
 import com.example.spending.service.domain.model.AccountNumber;
 import com.example.spending.service.domain.model.CurrencyCode;

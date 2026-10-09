@@ -1,4 +1,4 @@
-package com.example.spending.service.infrastructure.client.twelvedata.dto;
+package com.example.spending.service.infrastructure.adapter.out.client.twelvedata.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;

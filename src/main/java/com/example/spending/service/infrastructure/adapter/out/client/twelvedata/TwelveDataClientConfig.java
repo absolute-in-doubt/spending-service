@@ -1,4 +1,4 @@
-package com.example.spending.service.infrastructure.client.twelvedata;
+package com.example.spending.service.infrastructure.adapter.out.client.twelvedata;
 
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;

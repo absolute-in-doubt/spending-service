@@ -1,11 +1,11 @@
-package com.example.spending.service.infrastructure.repository;
+package com.example.spending.service.infrastructure.adapter.out.persistence;
 
-import com.example.spending.service.application.dto.ExceededTransactionResponseDto;
-import com.example.spending.service.application.port.TransactionQueryRepository;
+import com.example.spending.service.application.port.in.dto.ExceededTransactionResponseDto;
+import com.example.spending.service.application.port.out.TransactionQueryRepository;
 import com.example.spending.service.domain.model.AccountNumber;
 import com.example.spending.service.domain.model.TransactionOperation;
 import com.example.spending.service.domain.repository.TransactionOperationRepository;
-import com.example.spending.service.infrastructure.mapper.TransactionOperationMapper;
+import com.example.spending.service.infrastructure.adapter.out.persistence.mapper.TransactionOperationMapper;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;

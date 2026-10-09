@@ -1,10 +1,10 @@
-package com.example.spending.service.infrastructure.repository;
+package com.example.spending.service.infrastructure.adapter.out.persistence;
 
 import com.example.spending.service.domain.model.AccountNumber;
 import com.example.spending.service.domain.model.AccountMonthlySpending;
 import com.example.spending.service.domain.model.ExpenseCategory;
 import com.example.spending.service.domain.repository.MonthlySpendingRepository;
-import com.example.spending.service.infrastructure.mapper.MonthlySpendingMapper;
+import com.example.spending.service.infrastructure.adapter.out.persistence.mapper.MonthlySpendingMapper;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Repository;

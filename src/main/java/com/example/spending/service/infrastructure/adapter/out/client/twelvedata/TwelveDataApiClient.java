@@ -1,8 +1,8 @@
-package com.example.spending.service.infrastructure.client.twelvedata;
+package com.example.spending.service.infrastructure.adapter.out.client.twelvedata;
 
-import com.example.spending.service.application.port.CurrencyRateApiClient;
+import com.example.spending.service.application.port.out.CurrencyRateApiClient;
 import com.example.spending.service.domain.model.ExchangeRate;
-import com.example.spending.service.infrastructure.client.twelvedata.dto.TwelveDataQuoteResponse;
+import com.example.spending.service.infrastructure.adapter.out.client.twelvedata.dto.TwelveDataQuoteResponse;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import lombok.RequiredArgsConstructor;
