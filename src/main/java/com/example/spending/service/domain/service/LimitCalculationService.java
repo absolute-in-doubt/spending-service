@@ -1,14 +1,13 @@
 package com.example.spending.service.domain.service;
 
 import com.example.spending.service.domain.model.ExpenseLimit;
-import com.example.spending.service.domain.model.LimitEvaluationResult;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.Objects;
 
 /**
- * Domain Service responsible for calculating monthly spending limit balances
- * and deciding whether a transaction exceeds the limit.
+ * Domain Service responsible for calculating whether a transaction exceeds the monthly spending limit.
  */
 @Service
 public class LimitCalculationService {
@@ -16,18 +15,20 @@ public class LimitCalculationService {
     public static final BigDecimal DEFAULT_LIMIT_USD = new BigDecimal("1000.00");
 
     /**
-     * Evaluates whether a new transaction exceeds the active limit.
+     * Checks whether the current transaction causes total monthly expenses to exceed the active limit.
      *
      * @param activeLimit the active limit (or null if none set, in which case default 1000 USD is used)
      * @param spentBeforeTransactionUsd accumulated expenses in current month before this transaction
      * @param transactionAmountUsd amount of current transaction converted to USD
-     * @return LimitEvaluationResult containing limitExceeded flag, remaining balance, and amounts
+     * @return true if new total monthly expenses exceed the limit, false otherwise
      */
-    public LimitEvaluationResult evaluateTransaction(
+    public boolean isLimitExceeded(
             ExpenseLimit activeLimit,
             BigDecimal spentBeforeTransactionUsd,
             BigDecimal transactionAmountUsd
     ) {
+        Objects.requireNonNull(transactionAmountUsd, "transactionAmountUsd must not be null");
+
         BigDecimal effectiveLimit = (activeLimit != null && activeLimit.getLimitSum() != null)
                 ? activeLimit.getLimitSum()
                 : DEFAULT_LIMIT_USD;
@@ -36,6 +37,7 @@ public class LimitCalculationService {
                 ? spentBeforeTransactionUsd
                 : BigDecimal.ZERO;
 
-        return LimitEvaluationResult.evaluate(previousSpent, transactionAmountUsd, effectiveLimit);
+        BigDecimal newTotal = previousSpent.add(transactionAmountUsd);
+        return newTotal.compareTo(effectiveLimit) > 0;
     }
 }
