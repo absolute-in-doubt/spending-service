@@ -2,8 +2,10 @@ package com.example.spending.service.application.service;
 
 import com.example.spending.service.application.exception.TransactionParkedException;
 import com.example.spending.service.application.mapper.TransactionOperationDtoMapper;
+import com.example.spending.service.application.port.in.dto.ExceededTransactionResponseDto;
 import com.example.spending.service.application.port.in.dto.RegisterTransactionRequestDto;
 import com.example.spending.service.application.port.in.dto.TransactionResponseDto;
+import com.example.spending.service.application.port.out.TransactionQueryRepository;
 import com.example.spending.service.domain.model.*;
 import com.example.spending.service.domain.repository.ExpenseLimitRepository;
 import com.example.spending.service.domain.repository.MonthlySpendingRepository;
@@ -22,6 +24,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.YearMonth;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -40,6 +43,7 @@ public class TransactionOperationService implements TransactionRecoveryHandler {
     private final ExpenseLimitRepository expenseLimitRepository;
     private final LimitCalculationService limitCalculationService;
     private final TransactionOperationRepository transactionOperationRepository;
+    private final TransactionQueryRepository transactionQueryRepository;
     private final UnprocessedTransactionRepository unprocessedTransactionRepository;
     private final TransactionOperationDtoMapper mapper;
     private final TransactionOperations transactionOperations;
@@ -197,5 +201,20 @@ public class TransactionOperationService implements TransactionRecoveryHandler {
 
         // Step 6: Map to TransactionResponseDto and return
         return mapper.toDto(saved);
+    }
+
+    /**
+     * Retrieves all transactions that exceeded the monthly limit for a client account,
+     * along with the active limit details at the time of each transaction (Requirement 6).
+     *
+     * @param accountFrom the 10-digit client account number
+     * @return list of ExceededTransactionResponseDto
+     * @throws IllegalArgumentException if account number format is invalid
+     */
+    public List<ExceededTransactionResponseDto> getExceededTransactions(String accountFrom) {
+        Objects.requireNonNull(accountFrom, "account_from must not be null");
+        AccountNumber account = AccountNumber.of(accountFrom);
+        log.debug("Retrieving exceeded transactions for account: {}", accountFrom);
+        return transactionQueryRepository.findExceededTransactionsWithLimit(account);
     }
 }

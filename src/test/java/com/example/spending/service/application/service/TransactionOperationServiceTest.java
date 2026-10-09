@@ -6,6 +6,8 @@ import com.example.spending.service.application.mapper.TransactionOperationDtoMa
 import com.example.spending.service.application.port.in.dto.RegisterTransactionRequestDto;
 import com.example.spending.service.application.port.in.dto.TransactionResponseDto;
 import com.example.spending.service.domain.model.*;
+import com.example.spending.service.application.port.in.dto.ExceededTransactionResponseDto;
+import com.example.spending.service.application.port.out.TransactionQueryRepository;
 import com.example.spending.service.domain.repository.ExpenseLimitRepository;
 import com.example.spending.service.domain.repository.MonthlySpendingRepository;
 import com.example.spending.service.domain.repository.TransactionOperationRepository;
@@ -25,6 +27,7 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.YearMonth;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -49,6 +52,9 @@ class TransactionOperationServiceTest {
     private TransactionOperationRepository transactionOperationRepository;
 
     @Mock
+    private TransactionQueryRepository transactionQueryRepository;
+
+    @Mock
     private UnprocessedTransactionRepository unprocessedTransactionRepository;
 
     private final TransactionOperations transactionOperations = TransactionOperations.withoutTransaction();
@@ -71,6 +77,7 @@ class TransactionOperationServiceTest {
                 expenseLimitRepository,
                 limitCalculationService,
                 transactionOperationRepository,
+                transactionQueryRepository,
                 unprocessedTransactionRepository,
                 mapper,
                 transactionOperations
@@ -322,5 +329,45 @@ class TransactionOperationServiceTest {
 
         verify(unprocessedTransactionRepository).hasUnresolvedTransactions(accountFrom, ExpenseCategory.PRODUCT, expectedUtcMonth);
         verify(monthlySpendingRepository).getAndLock(accountFrom, ExpenseCategory.PRODUCT, expectedUtcMonth);
+    }
+
+    @Test
+    @DisplayName("Should retrieve exceeded transactions with limit details for account")
+    void shouldRetrieveExceededTransactionsForAccount() {
+        String account = "0000000123";
+        AccountNumber accountFrom = AccountNumber.of(account);
+        ExceededTransactionResponseDto exceededDto = new ExceededTransactionResponseDto(
+                account,
+                "9999999999",
+                "USD",
+                new BigDecimal("600.00"),
+                "product",
+                now,
+                new BigDecimal("1000.00"),
+                now.minusDays(1),
+                "USD"
+        );
+
+        when(transactionQueryRepository.findExceededTransactionsWithLimit(accountFrom))
+                .thenReturn(List.of(exceededDto));
+
+        List<ExceededTransactionResponseDto> result = service.getExceededTransactions(account);
+
+        assertThat(result).hasSize(1).contains(exceededDto);
+        verify(transactionQueryRepository).findExceededTransactionsWithLimit(accountFrom);
+    }
+
+    @Test
+    @DisplayName("Should throw IllegalArgumentException when accountFrom is invalid in getExceededTransactions")
+    void shouldThrowWhenAccountFromIsInvalidInGetExceededTransactions() {
+        assertThatThrownBy(() -> service.getExceededTransactions("invalid_account"))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    @DisplayName("Should throw NullPointerException when accountFrom is null in getExceededTransactions")
+    void shouldThrowWhenAccountFromIsNullInGetExceededTransactions() {
+        assertThatThrownBy(() -> service.getExceededTransactions(null))
+                .isInstanceOf(NullPointerException.class);
     }
 }
