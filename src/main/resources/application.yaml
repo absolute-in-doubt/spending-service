@@ -19,6 +19,13 @@ app:
       api-key: ${TWELVE_DATA_API_KEY:demo}
       connect-timeout: 1s
       read-timeout: 2s
+    sync:
+      enabled: ${CURRENCY_SYNC_ENABLED:true}
+      fixed-delay: 1h
+      run-on-startup: true
+      default-pairs:
+        - "KZT/USD"
+        - "RUB/USD"
   dlq:
     worker:
       enabled: ${DLQ_WORKER_ENABLED:true}

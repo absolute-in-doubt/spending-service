@@ -9,7 +9,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
 @Configuration
 @EnableScheduling
-@EnableConfigurationProperties(UnprocessedTransactionWorkerProperties.class)
+@EnableConfigurationProperties({UnprocessedTransactionWorkerProperties.class, CurrencyRateSyncProperties.class})
 public class SchedulingConfig {
 
     @Bean
