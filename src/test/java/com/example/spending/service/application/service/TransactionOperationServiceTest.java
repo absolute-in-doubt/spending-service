@@ -284,4 +284,43 @@ class TransactionOperationServiceTest {
         verifyNoInteractions(monthlySpendingRepository);
         verifyNoInteractions(transactionOperationRepository);
     }
+
+    @Test
+    @DisplayName("Should normalize transaction timezone to UTC when querying spending and unresolved transactions")
+    void shouldNormalizeTimezoneToUtc() {
+        // 2022-01-31 23:30:00 in -05:00 is 2022-02-01 04:30:00 UTC (February in UTC)
+        OffsetDateTime dt = OffsetDateTime.of(2022, 1, 31, 23, 30, 0, 0, ZoneOffset.ofHours(-5));
+        YearMonth expectedUtcMonth = YearMonth.of(2022, 2);
+
+        RegisterTransactionRequestDto request = new RegisterTransactionRequestDto(
+                "0000000123",
+                "9999999999",
+                "USD",
+                new BigDecimal("100.00"),
+                "product",
+                dt
+        );
+
+        AccountNumber accountFrom = AccountNumber.of("0000000123");
+        when(unprocessedTransactionRepository.hasUnresolvedTransactions(accountFrom, ExpenseCategory.PRODUCT, expectedUtcMonth))
+                .thenReturn(false);
+
+        AccountMonthlySpending spending = AccountMonthlySpending.createDefault(accountFrom, ExpenseCategory.PRODUCT, expectedUtcMonth);
+        when(monthlySpendingRepository.getAndLock(accountFrom, ExpenseCategory.PRODUCT, expectedUtcMonth))
+                .thenReturn(spending);
+        when(expenseLimitRepository.findActiveLimit(accountFrom, ExpenseCategory.PRODUCT, dt))
+                .thenReturn(Optional.empty());
+
+        when(transactionOperationRepository.save(any(TransactionOperation.class)))
+                .thenAnswer(inv -> {
+                    TransactionOperation tx = inv.getArgument(0);
+                    tx.setId(1L);
+                    return tx;
+                });
+
+        service.saveTransactionOperation(request);
+
+        verify(unprocessedTransactionRepository).hasUnresolvedTransactions(accountFrom, ExpenseCategory.PRODUCT, expectedUtcMonth);
+        verify(monthlySpendingRepository).getAndLock(accountFrom, ExpenseCategory.PRODUCT, expectedUtcMonth);
+    }
 }

@@ -6,6 +6,7 @@ import com.example.spending.service.domain.model.ExchangeRate;
 import com.example.spending.service.domain.model.UnprocessedTransaction;
 import com.example.spending.service.domain.repository.ExchangeRateRepository;
 import com.example.spending.service.domain.repository.UnprocessedTransactionRepository;
+import com.example.spending.service.domain.util.DateTimeUtils;
 import com.example.spending.service.infrastructure.worker.config.UnprocessedTransactionWorkerProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -66,7 +67,7 @@ public class UnprocessedTransactionWorker {
 
     private void processRecord(UnprocessedTransaction record) {
         String pair = record.getCurrencyShortname().code() + "/USD";
-        LocalDate date = record.getDateTime().toLocalDate();
+        LocalDate date = DateTimeUtils.toBaseLocalDate(record.getDateTime());
 
         boolean success = false;
         String lastError = null;

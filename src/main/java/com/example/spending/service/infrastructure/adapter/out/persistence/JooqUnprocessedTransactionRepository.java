@@ -4,6 +4,7 @@ import com.example.spending.service.domain.model.AccountNumber;
 import com.example.spending.service.domain.model.ExpenseCategory;
 import com.example.spending.service.domain.model.UnprocessedTransaction;
 import com.example.spending.service.domain.repository.UnprocessedTransactionRepository;
+import com.example.spending.service.domain.util.DateTimeUtils;
 import com.example.spending.service.infrastructure.adapter.out.persistence.mapper.UnprocessedTransactionMapper;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
@@ -84,8 +85,8 @@ public class JooqUnprocessedTransactionRepository implements UnprocessedTransact
 
     @Override
     public boolean hasUnresolvedTransactions(AccountNumber accountFrom, ExpenseCategory category, YearMonth yearMonth) {
-        OffsetDateTime startOfMonth = yearMonth.atDay(1).atStartOfDay().atOffset(ZoneOffset.UTC);
-        OffsetDateTime startOfNextMonth = yearMonth.plusMonths(1).atDay(1).atStartOfDay().atOffset(ZoneOffset.UTC);
+        OffsetDateTime startOfMonth = DateTimeUtils.startOfMonth(yearMonth);
+        OffsetDateTime startOfNextMonth = DateTimeUtils.startOfNextMonth(yearMonth);
 
         return dsl.fetchExists(
                 dsl.selectOne()

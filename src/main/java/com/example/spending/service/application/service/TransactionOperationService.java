@@ -11,6 +11,7 @@ import com.example.spending.service.domain.repository.TransactionOperationReposi
 import com.example.spending.service.domain.repository.UnprocessedTransactionRepository;
 import com.example.spending.service.domain.service.CurrencyConversionService;
 import com.example.spending.service.domain.service.LimitCalculationService;
+import com.example.spending.service.domain.util.DateTimeUtils;
 import com.example.spending.service.infrastructure.worker.TransactionRecoveryHandler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -60,8 +61,8 @@ public class TransactionOperationService implements TransactionRecoveryHandler {
         ExpenseCategory category = ExpenseCategory.fromCode(request.expenseCategory());
         OffsetDateTime dateTime = request.dateTime();
         BigDecimal sum = request.sum();
-        LocalDate txDate = dateTime.toLocalDate();
-        YearMonth yearMonth = YearMonth.from(txDate);
+        LocalDate txDate = DateTimeUtils.toBaseLocalDate(dateTime);
+        YearMonth yearMonth = DateTimeUtils.toBaseYearMonth(dateTime);
 
         // 1. FIFO Head-of-Line Barrier: if earlier transactions are unresolved (PENDING or FAILED), queue behind them to preserve consistency
         if (unprocessedTransactionRepository.hasUnresolvedTransactions(accountFrom, category, yearMonth)) {
@@ -125,7 +126,7 @@ public class TransactionOperationService implements TransactionRecoveryHandler {
         Objects.requireNonNull(record, "UnprocessedTransaction record must not be null");
 
         CurrencyCode currency = record.getCurrencyShortname();
-        LocalDate txDate = record.getDateTime().toLocalDate();
+        LocalDate txDate = DateTimeUtils.toBaseLocalDate(record.getDateTime());
         String pair = currency.code() + "/USD";
 
         BigDecimal amountUsd;
@@ -170,7 +171,7 @@ public class TransactionOperationService implements TransactionRecoveryHandler {
             OffsetDateTime dateTime,
             BigDecimal amountUsd
     ) {
-        YearMonth yearMonth = YearMonth.from(dateTime.toLocalDate());
+        YearMonth yearMonth = DateTimeUtils.toBaseYearMonth(dateTime);
 
         // Step 1: Pessimistic lock on AccountMonthlySpending (SELECT ... FOR UPDATE)
         AccountMonthlySpending spending = monthlySpendingRepository.getAndLock(accountFrom, category, yearMonth);

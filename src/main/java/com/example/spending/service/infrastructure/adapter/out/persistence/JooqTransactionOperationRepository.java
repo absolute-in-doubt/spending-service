@@ -74,6 +74,8 @@ public class JooqTransactionOperationRepository implements TransactionOperationR
                 .on(l.ACCOUNT_FROM.eq(t.ACCOUNT_FROM))
                 .and(l.EXPENSE_CATEGORY.eq(t.EXPENSE_CATEGORY))
                 .and(l.LIMIT_DATETIME.le(t.DATETIME))
+                .where(t.ACCOUNT_FROM.eq(accountFrom.value()))
+                .and(t.LIMIT_EXCEEDED.isTrue())
                 .groupBy(t.ID)
                 .asTable("latest_l");
 
