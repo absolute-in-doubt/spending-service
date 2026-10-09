@@ -11,3 +11,6 @@ databaseChangeLog:
   - include:
       file: changes/004-create-account-monthly-spending.yaml
       relativeToChangelogFile: true
+  - include:
+      file: changes/005-create-unprocessed-transactions.yaml
+      relativeToChangelogFile: true
