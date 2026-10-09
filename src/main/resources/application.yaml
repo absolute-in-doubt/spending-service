@@ -19,6 +19,16 @@ app:
       api-key: ${TWELVE_DATA_API_KEY:demo}
       connect-timeout: 1s
       read-timeout: 2s
+  dlq:
+    worker:
+      enabled: ${DLQ_WORKER_ENABLED:true}
+      fixed-delay: 10s
+      batch-size: 10
+      lease-duration: 30s
+      retries-per-attempt: 3
+      retry-backoff: 500ms
+      retries-total: 5
+      thread-pool-size: 2
 
 resilience4j:
   circuitbreaker:

@@ -1,8 +1,8 @@
-package com.example.spending.service.infrastructure.repository;
+package com.example.spending.service.infrastructure.adapter.out.persistence;
 
 import com.example.spending.service.domain.model.UnprocessedTransaction;
 import com.example.spending.service.domain.repository.UnprocessedTransactionRepository;
-import com.example.spending.service.infrastructure.mapper.UnprocessedTransactionMapper;
+import com.example.spending.service.infrastructure.adapter.out.persistence.mapper.UnprocessedTransactionMapper;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Repository;
