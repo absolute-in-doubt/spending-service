@@ -32,6 +32,8 @@ class CurrencyRateServiceTest {
 
     private final LocalDate testDate = LocalDate.of(2026, 10, 9);
     private final String pair = "KZT/USD";
+    private final String currencyFrom = "KZT";
+    private final String currencyTo = "USD";
 
     @BeforeEach
     void setUp() {
@@ -42,7 +44,7 @@ class CurrencyRateServiceTest {
     @DisplayName("Should return cached exchange rate from DB without calling external API")
     void shouldReturnCachedRateWhenPresentInDb() {
         ExchangeRate cached = ExchangeRate.builder()
-                .currencyPair(pair)
+                .currencyPair(currencyFrom + "/" + currencyTo)
                 .rateDate(testDate)
                 .closeRate(new BigDecimal("0.0021"))
                 .previousCloseRate(new BigDecimal("0.0020"))
@@ -69,7 +71,7 @@ class CurrencyRateServiceTest {
                 .build();
 
         when(exchangeRateRepository.findByPairAndDate(pair, testDate)).thenReturn(Optional.empty());
-        when(currencyRateApiClient.fetchRate(pair, testDate)).thenReturn(Optional.of(fetched));
+        when(currencyRateApiClient.fetchRate(currencyFrom, currencyTo, testDate)).thenReturn(Optional.of(fetched));
 
         Optional<ExchangeRate> result = service.getOrFetchRate(pair, testDate);
 
@@ -88,7 +90,7 @@ class CurrencyRateServiceTest {
                 .build();
 
         when(exchangeRateRepository.findByPairAndDate(pair, testDate)).thenReturn(Optional.empty());
-        when(currencyRateApiClient.fetchRate(pair, testDate)).thenReturn(Optional.empty());
+        when(currencyRateApiClient.fetchRate(currencyFrom, currencyTo, testDate)).thenReturn(Optional.empty());
         when(exchangeRateRepository.findEffectiveRate(pair, testDate)).thenReturn(Optional.of(historicalRate));
 
         Optional<ExchangeRate> result = service.getOrFetchRate(pair, testDate);
@@ -108,7 +110,7 @@ class CurrencyRateServiceTest {
                 .build();
 
         when(exchangeRateRepository.findByPairAndDate(pair, testDate)).thenReturn(Optional.empty());
-        when(currencyRateApiClient.fetchRate(pair, testDate)).thenThrow(new RuntimeException("Third-party service down"));
+        when(currencyRateApiClient.fetchRate(currencyFrom, currencyTo, testDate)).thenThrow(new RuntimeException("Third-party service down"));
         when(exchangeRateRepository.findEffectiveRate(pair, testDate)).thenReturn(Optional.of(historicalRate));
 
         Optional<ExchangeRate> result = service.getOrFetchRate(pair, testDate);
@@ -121,7 +123,7 @@ class CurrencyRateServiceTest {
     @DisplayName("Should return empty when rate is not in DB, API returns empty, and no effective rate in DB")
     void shouldReturnEmptyWhenBothApiAndEffectiveRateUnavailable() {
         when(exchangeRateRepository.findByPairAndDate(pair, testDate)).thenReturn(Optional.empty());
-        when(currencyRateApiClient.fetchRate(pair, testDate)).thenReturn(Optional.empty());
+        when(currencyRateApiClient.fetchRate(currencyFrom, currencyTo, testDate)).thenReturn(Optional.empty());
         when(exchangeRateRepository.findEffectiveRate(pair, testDate)).thenReturn(Optional.empty());
 
         Optional<ExchangeRate> result = service.getOrFetchRate(pair, testDate);

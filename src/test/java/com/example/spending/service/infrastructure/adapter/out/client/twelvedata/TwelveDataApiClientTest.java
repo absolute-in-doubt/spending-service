@@ -29,6 +29,10 @@ class TwelveDataApiClientTest {
     private TwelveDataProperties properties;
     private TwelveDataApiClient apiClient;
 
+    private final String pair = "KZT/USD";
+    private final String currencyFrom = "KZT";
+    private final String currencyTo = "USD";
+
     @BeforeEach
     void setUp() {
         properties = new TwelveDataProperties("https://api.twelvedata.com", "test-key", Duration.ofSeconds(1), Duration.ofSeconds(2));
@@ -40,18 +44,18 @@ class TwelveDataApiClientTest {
     void shouldFetchRateWhenCloseIsPresent() {
         LocalDate date = LocalDate.of(2026, 10, 9);
         TwelveDataQuoteResponse response = new TwelveDataQuoteResponse(
-                "USD/KZT", "US Dollar / Kazakhstani Tenge", "2026-10-09",
+                pair, "US Dollar / Kazakhstani Tenge", "2026-10-09",
                 new BigDecimal("450.50"), new BigDecimal("449.00"), null, "ok", 200, null
         );
 
         when(restClient.get().uri(anyString()).retrieve().body(TwelveDataQuoteResponse.class))
                 .thenReturn(response);
 
-        Optional<ExchangeRate> result = apiClient.fetchRate("USD/KZT", date);
+        Optional<ExchangeRate> result = apiClient.fetchRate(currencyFrom, currencyTo, date);
 
         assertThat(result).isPresent();
         ExchangeRate rate = result.get();
-        assertThat(rate.getCurrencyPair()).isEqualTo("USD/KZT");
+        assertThat(rate.getCurrencyPair()).isEqualTo(pair);
         assertThat(rate.getRateDate()).isEqualTo(date);
         assertThat(rate.getCloseRate()).isEqualByComparingTo("450.50");
         assertThat(rate.getPreviousCloseRate()).isEqualByComparingTo("449.00");
@@ -63,14 +67,14 @@ class TwelveDataApiClientTest {
     void shouldAcceptPreviousCloseWhenCloseIsNullOnWeekend() {
         LocalDate weekendDate = LocalDate.of(2026, 10, 10);
         TwelveDataQuoteResponse weekendResponse = new TwelveDataQuoteResponse(
-                "USD/KZT", "US Dollar / Kazakhstani Tenge", "2026-10-10",
+                pair, "US Dollar / Kazakhstani Tenge", "2026-10-10",
                 null, new BigDecimal("450.50"), null, "ok", 200, null
         );
 
         when(restClient.get().uri(anyString()).retrieve().body(TwelveDataQuoteResponse.class))
                 .thenReturn(weekendResponse);
 
-        Optional<ExchangeRate> result = apiClient.fetchRate("USD/KZT", weekendDate);
+        Optional<ExchangeRate> result = apiClient.fetchRate(currencyFrom, currencyTo, weekendDate);
 
         assertThat(result).isPresent();
         ExchangeRate rate = result.get();
@@ -84,14 +88,14 @@ class TwelveDataApiClientTest {
     void shouldReturnEmptyWhenNoRatesInResponse() {
         LocalDate date = LocalDate.of(2026, 10, 10);
         TwelveDataQuoteResponse emptyResponse = new TwelveDataQuoteResponse(
-                "USD/KZT", "US Dollar / Kazakhstani Tenge", "2026-10-10",
+                pair, "US Dollar / Kazakhstani Tenge", "2026-10-10",
                 null, null, null, "ok", 200, null
         );
 
         when(restClient.get().uri(anyString()).retrieve().body(TwelveDataQuoteResponse.class))
                 .thenReturn(emptyResponse);
 
-        Optional<ExchangeRate> result = apiClient.fetchRate("USD/KZT", date);
+        Optional<ExchangeRate> result = apiClient.fetchRate(currencyFrom, currencyTo, date);
 
         assertThat(result).isEmpty();
     }
@@ -101,14 +105,56 @@ class TwelveDataApiClientTest {
     void shouldReturnEmptyWhenApiError() {
         LocalDate date = LocalDate.of(2026, 10, 10);
         TwelveDataQuoteResponse errorResponse = new TwelveDataQuoteResponse(
-                "USD/KZT", null, null,
+                pair, null, null,
                 null, null, null, "error", 400, "Invalid symbol"
         );
 
         when(restClient.get().uri(anyString()).retrieve().body(TwelveDataQuoteResponse.class))
                 .thenReturn(errorResponse);
 
-        Optional<ExchangeRate> result = apiClient.fetchRate("USD/KZT", date);
+        Optional<ExchangeRate> result = apiClient.fetchRate(currencyFrom, currencyTo, date);
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Should fall back to inverse pair (USD/KZT) and invert rates when direct pair (KZT/USD) returns 404")
+    void shouldFallbackToInversePairAndInvertRateWhenDirectFails() {
+        LocalDate date = LocalDate.of(2026, 10, 9);
+
+        // Direct pair KZT/USD returns 404 client error
+        when(restClient.get().uri(org.mockito.ArgumentMatchers.contains("symbol=KZT/USD")).retrieve().body(TwelveDataQuoteResponse.class))
+                .thenThrow(new org.springframework.web.client.HttpClientErrorException(org.springframework.http.HttpStatus.NOT_FOUND));
+
+        // Inverse pair USD/KZT returns 500.00 close, 400.00 previous close
+        TwelveDataQuoteResponse inverseResponse = new TwelveDataQuoteResponse(
+                "USD/KZT", "US Dollar / Kazakhstani Tenge", "2026-10-09",
+                new BigDecimal("500.00"), new BigDecimal("400.00"), null, "ok", 200, null
+        );
+        when(restClient.get().uri(org.mockito.ArgumentMatchers.contains("symbol=USD/KZT")).retrieve().body(TwelveDataQuoteResponse.class))
+                .thenReturn(inverseResponse);
+
+        Optional<ExchangeRate> result = apiClient.fetchRate(currencyFrom, currencyTo, date);
+
+        assertThat(result).isPresent();
+        ExchangeRate rate = result.get();
+        assertThat(rate.getCurrencyPair()).isEqualTo("KZT/USD");
+        assertThat(rate.getRateDate()).isEqualTo(date);
+        // 1 / 500.00 = 0.002000
+        assertThat(rate.getCloseRate()).isEqualByComparingTo("0.002000");
+        // 1 / 400.00 = 0.002500
+        assertThat(rate.getPreviousCloseRate()).isEqualByComparingTo("0.002500");
+    }
+
+    @Test
+    @DisplayName("Should return empty gracefully when both direct and inverse queries fail with 4xx client errors")
+    void shouldReturnEmptyWhenBothDirectAndInverseFailWithClientError() {
+        LocalDate date = LocalDate.of(2026, 10, 9);
+
+        when(restClient.get().uri(anyString()).retrieve().body(TwelveDataQuoteResponse.class))
+                .thenThrow(new org.springframework.web.client.HttpClientErrorException(org.springframework.http.HttpStatus.NOT_FOUND));
+
+        Optional<ExchangeRate> result = apiClient.fetchRate(currencyFrom, currencyTo, date);
 
         assertThat(result).isEmpty();
     }

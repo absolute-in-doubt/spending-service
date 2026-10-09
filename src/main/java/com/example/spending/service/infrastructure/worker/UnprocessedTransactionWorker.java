@@ -36,6 +36,7 @@ public class UnprocessedTransactionWorker {
     private final ExchangeRateRepository exchangeRateRepository;
     private final UnprocessedTransactionWorkerProperties properties;
     private final TransactionRecoveryHandler recoveryHandler;
+    private static final String CURRENCY_TO = "USD";
 
     @Scheduled(fixedDelayString = "${app.dlq.worker.fixed-delay:10s}")
     public void processBatch() {
@@ -67,7 +68,8 @@ public class UnprocessedTransactionWorker {
     }
 
     private void processRecord(UnprocessedTransaction record) {
-        String pair = record.getCurrencyShortname().code() + "/USD";
+        String currencyFrom = record.getCurrencyShortname().code();
+        String pair = currencyFrom + "/" + CURRENCY_TO;
         LocalDate date = DateTimeUtils.toBaseLocalDate(record.getDateTime());
 
         boolean success = false;
@@ -75,7 +77,7 @@ public class UnprocessedTransactionWorker {
 
         for (int attempt = 1; attempt <= properties.retriesPerAttempt(); attempt++) {
             try {
-                Optional<ExchangeRate> rateOpt = currencyRateApiClient.fetchRate(pair, date);
+                Optional<ExchangeRate> rateOpt = currencyRateApiClient.fetchRate(currencyFrom, CURRENCY_TO, date);
                 if (rateOpt.isPresent()) {
                     exchangeRateRepository.saveOrUpdate(rateOpt.get());
                     success = true;

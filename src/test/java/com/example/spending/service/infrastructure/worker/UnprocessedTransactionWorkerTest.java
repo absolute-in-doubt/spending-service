@@ -50,6 +50,10 @@ class UnprocessedTransactionWorkerTest {
     private UnprocessedTransactionWorker worker;
 
     private final OffsetDateTime now = OffsetDateTime.of(2026, 10, 9, 10, 0, 0, 0, ZoneOffset.UTC);
+    private final String pair = "KZT/USD";
+    private final String currencyFrom = "KZT";
+    private final String currencyTo = "USD";
+
 
     @BeforeEach
     void setUp() {
@@ -96,13 +100,13 @@ class UnprocessedTransactionWorkerTest {
                 .thenReturn(List.of(record));
 
         ExchangeRate rate = ExchangeRate.builder()
-                .currencyPair("KZT/USD")
+                .currencyPair(pair)
                 .rateDate(now.toLocalDate())
                 .closeRate(new BigDecimal("0.0021"))
                 .previousCloseRate(new BigDecimal("0.0020"))
                 .build();
 
-        when(currencyRateApiClient.fetchRate("KZT/USD", now.toLocalDate())).thenReturn(Optional.of(rate));
+        when(currencyRateApiClient.fetchRate(currencyFrom, currencyTo, now.toLocalDate())).thenReturn(Optional.of(rate));
 
         worker.processBatch();
 
@@ -120,12 +124,12 @@ class UnprocessedTransactionWorkerTest {
         when(repository.acquireBatchForRetry(anyString(), any(), any(), eq(3), eq(10)))
                 .thenReturn(List.of(record));
 
-        when(currencyRateApiClient.fetchRate("KZT/USD", now.toLocalDate())).thenReturn(Optional.empty());
+        when(currencyRateApiClient.fetchRate(currencyFrom, currencyTo, now.toLocalDate())).thenReturn(Optional.empty());
 
         worker.processBatch();
 
         // 2 in-memory attempts configured
-        verify(currencyRateApiClient, times(2)).fetchRate("KZT/USD", now.toLocalDate());
+        verify(currencyRateApiClient, times(2)).fetchRate(currencyFrom, currencyTo, now.toLocalDate());
         verifyNoInteractions(exchangeRateRepository);
         verifyNoInteractions(recoveryHandler);
 
@@ -143,7 +147,7 @@ class UnprocessedTransactionWorkerTest {
         when(repository.acquireBatchForRetry(anyString(), any(), any(), eq(3), eq(10)))
                 .thenReturn(List.of(record));
 
-        when(currencyRateApiClient.fetchRate("KZT/USD", now.toLocalDate())).thenReturn(Optional.empty());
+        when(currencyRateApiClient.fetchRate(currencyFrom, currencyTo, now.toLocalDate())).thenReturn(Optional.empty());
 
         worker.processBatch();
 

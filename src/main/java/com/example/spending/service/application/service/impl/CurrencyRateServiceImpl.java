@@ -49,7 +49,8 @@ public class CurrencyRateServiceImpl implements CurrencyRateService {
 
         // 2. Fetch from external API client
         try {
-            Optional<ExchangeRate> fetchedRate = currencyRateApiClient.fetchRate(currencyPair, date);
+            String[] pair = currencyPair.split("/");
+            Optional<ExchangeRate> fetchedRate = currencyRateApiClient.fetchRate(pair[0], pair[1], date);
             if (fetchedRate.isPresent()) {
                 ExchangeRate rate = fetchedRate.get();
                 exchangeRateRepository.saveOrUpdate(rate);

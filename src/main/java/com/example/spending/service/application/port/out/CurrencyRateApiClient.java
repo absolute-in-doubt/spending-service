@@ -13,10 +13,11 @@ public interface CurrencyRateApiClient {
     /**
      * Fetches daily exchange rate for the specified currency pair and date from an external provider.
      *
-     * @param currencyPair currency pair formatted as BASE/QUOTE (e.g. "KZT/USD", "RUB/USD")
+     * @param currencyFrom currency from which we want to exchange
+     * @param currencyTo currency to which we exchange
      * @param date         date of the exchange rate
      * @return Optional containing the fetched ExchangeRate (with close rate and optional previous close rate),
      *         or Optional.empty() if the rate was not found
      */
-    Optional<ExchangeRate> fetchRate(String currencyPair, LocalDate date);
+    Optional<ExchangeRate> fetchRate(String currencyFrom, String currencyTo, LocalDate date);
 }
