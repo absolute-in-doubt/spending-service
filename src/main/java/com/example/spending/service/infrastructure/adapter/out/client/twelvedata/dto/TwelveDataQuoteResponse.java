@@ -21,6 +21,20 @@ public record TwelveDataQuoteResponse(
         return close != null ? close : rate;
     }
 
+    public BigDecimal effectiveRate() {
+        if (close != null) {
+            return close;
+        }
+        if (rate != null) {
+            return rate;
+        }
+        return previousClose;
+    }
+
+    public boolean hasAnyRate() {
+        return effectiveRate() != null;
+    }
+
     public boolean isError() {
         return "error".equalsIgnoreCase(status) || (code != null && code >= 400);
     }

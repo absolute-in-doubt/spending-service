@@ -1,8 +1,11 @@
 package com.example.spending.service.domain.repository;
 
+import com.example.spending.service.domain.model.AccountNumber;
+import com.example.spending.service.domain.model.ExpenseCategory;
 import com.example.spending.service.domain.model.UnprocessedTransaction;
 
 import java.time.OffsetDateTime;
+import java.time.YearMonth;
 import java.util.List;
 import java.util.Optional;
 
@@ -28,4 +31,10 @@ public interface UnprocessedTransactionRepository {
      * Updates an existing unprocessed transaction (e.g. after a retry attempt, status change, or lease release).
      */
     void update(UnprocessedTransaction transaction);
+
+    /**
+     * Checks if there are any unresolved (PENDING or FAILED) unprocessed transactions
+     * for the given account, category, and month.
+     */
+    boolean hasUnresolvedTransactions(AccountNumber accountFrom, ExpenseCategory category, YearMonth yearMonth);
 }

@@ -1,5 +1,7 @@
 package com.example.spending.service.infrastructure.adapter.out.persistence;
 
+import com.example.spending.service.domain.model.AccountNumber;
+import com.example.spending.service.domain.model.ExpenseCategory;
 import com.example.spending.service.domain.model.UnprocessedTransaction;
 import com.example.spending.service.domain.repository.UnprocessedTransactionRepository;
 import com.example.spending.service.infrastructure.adapter.out.persistence.mapper.UnprocessedTransactionMapper;
@@ -8,6 +10,9 @@ import org.jooq.DSLContext;
 import org.springframework.stereotype.Repository;
 
 import java.time.OffsetDateTime;
+import java.time.YearMonth;
+import java.time.ZoneOffset;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -55,7 +60,7 @@ public class JooqUnprocessedTransactionRepository implements UnprocessedTransact
                 .and(UNPROCESSED_TRANSACTIONS.RETRY_COUNT.lt(maxRetries))
                 .and(UNPROCESSED_TRANSACTIONS.LEASED_UNTIL.isNull()
                         .or(UNPROCESSED_TRANSACTIONS.LEASED_UNTIL.lt(now)))
-                .orderBy(UNPROCESSED_TRANSACTIONS.CREATED_AT.asc())
+                .orderBy(UNPROCESSED_TRANSACTIONS.DATETIME.asc(), UNPROCESSED_TRANSACTIONS.ID.asc())
                 .limit(limit)
                 .fetchInto(Long.class);
 
@@ -63,7 +68,7 @@ public class JooqUnprocessedTransactionRepository implements UnprocessedTransact
             return List.of();
         }
 
-        return dsl.update(UNPROCESSED_TRANSACTIONS)
+        List<UnprocessedTransaction> acquired = dsl.update(UNPROCESSED_TRANSACTIONS)
                 .set(UNPROCESSED_TRANSACTIONS.LEASE_TOKEN, workerToken)
                 .set(UNPROCESSED_TRANSACTIONS.LEASED_UNTIL, leaseUntil)
                 .set(UNPROCESSED_TRANSACTIONS.UPDATED_AT, now)
@@ -72,6 +77,25 @@ public class JooqUnprocessedTransactionRepository implements UnprocessedTransact
                         .or(UNPROCESSED_TRANSACTIONS.LEASED_UNTIL.lt(now)))
                 .returning()
                 .fetch(mapper);
+
+        acquired.sort(Comparator.comparing(UnprocessedTransaction::getDateTime).thenComparing(UnprocessedTransaction::getId));
+        return acquired;
+    }
+
+    @Override
+    public boolean hasUnresolvedTransactions(AccountNumber accountFrom, ExpenseCategory category, YearMonth yearMonth) {
+        OffsetDateTime startOfMonth = yearMonth.atDay(1).atStartOfDay().atOffset(ZoneOffset.UTC);
+        OffsetDateTime startOfNextMonth = yearMonth.plusMonths(1).atDay(1).atStartOfDay().atOffset(ZoneOffset.UTC);
+
+        return dsl.fetchExists(
+                dsl.selectOne()
+                        .from(UNPROCESSED_TRANSACTIONS)
+                        .where(UNPROCESSED_TRANSACTIONS.ACCOUNT_FROM.eq(accountFrom.value()))
+                        .and(UNPROCESSED_TRANSACTIONS.EXPENSE_CATEGORY.eq(category.getCode()))
+                        .and(UNPROCESSED_TRANSACTIONS.STATUS.in("PENDING", "FAILED"))
+                        .and(UNPROCESSED_TRANSACTIONS.DATETIME.ge(startOfMonth))
+                        .and(UNPROCESSED_TRANSACTIONS.DATETIME.lt(startOfNextMonth))
+        );
     }
 
     @Override

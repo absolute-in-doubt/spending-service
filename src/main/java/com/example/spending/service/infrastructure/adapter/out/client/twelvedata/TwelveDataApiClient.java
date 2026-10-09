@@ -43,7 +43,7 @@ public class TwelveDataApiClient implements CurrencyRateApiClient {
                 .retrieve()
                 .body(TwelveDataQuoteResponse.class);
 
-        if (response == null || response.isError() || response.effectiveCloseRate() == null) {
+        if (response == null || response.isError() || !response.hasAnyRate()) {
             log.warn("Twelve Data API returned no rate or error for {}: {}",
                     currencyPair, response != null ? response.message() : "null response");
             return Optional.empty();

@@ -61,8 +61,29 @@ public class TransactionOperationService implements TransactionRecoveryHandler {
         OffsetDateTime dateTime = request.dateTime();
         BigDecimal sum = request.sum();
         LocalDate txDate = dateTime.toLocalDate();
+        YearMonth yearMonth = YearMonth.from(txDate);
 
-        // 1. Rate retrieval & USD conversion (performed OUTSIDE database transaction)
+        // 1. FIFO Head-of-Line Barrier: if earlier transactions are unresolved (PENDING or FAILED), queue behind them to preserve consistency
+        if (unprocessedTransactionRepository.hasUnresolvedTransactions(accountFrom, category, yearMonth)) {
+            UnprocessedTransaction parked = UnprocessedTransaction.create(
+                    accountFrom,
+                    accountTo,
+                    currency,
+                    sum,
+                    category,
+                    dateTime,
+                    "Queued behind earlier unresolved transaction for account " + accountFrom.value()
+            );
+            parked = unprocessedTransactionRepository.save(parked);
+            log.info("Earlier unresolved transaction exists for account {} and category {}. Queued in DLQ with ID {}",
+                    accountFrom.value(), category.getCode(), parked.getId());
+            throw new TransactionParkedException(
+                    "Earlier transaction is pending or unresolved for this account. Queued in DLQ.",
+                    parked.getId()
+            );
+        }
+
+        // 2. Rate retrieval & USD conversion (performed OUTSIDE database transaction)
         BigDecimal amountUsd;
         if (CurrencyCode.USD.equals(currency)) {
             amountUsd = sum;
@@ -92,7 +113,7 @@ public class TransactionOperationService implements TransactionRecoveryHandler {
 
         // 2. Transactional persistence & limit evaluation
         return transactionOperations.execute(status ->
-                executeTransactionPipeline(request, accountFrom, accountTo, currency, sum, category, dateTime, amountUsd)
+                executeTransactionPipeline(request, accountFrom, category, dateTime, amountUsd)
         );
     }
 
@@ -129,9 +150,6 @@ public class TransactionOperationService implements TransactionRecoveryHandler {
             executeTransactionPipeline(
                     dto,
                     record.getAccountFrom(),
-                    record.getAccountTo(),
-                    record.getCurrencyShortname(),
-                    record.getSum(),
                     record.getExpenseCategory(),
                     record.getDateTime(),
                     amountUsd
@@ -148,9 +166,6 @@ public class TransactionOperationService implements TransactionRecoveryHandler {
     private TransactionResponseDto executeTransactionPipeline(
             RegisterTransactionRequestDto request,
             AccountNumber accountFrom,
-            AccountNumber accountTo,
-            CurrencyCode currency,
-            BigDecimal sum,
             ExpenseCategory category,
             OffsetDateTime dateTime,
             BigDecimal amountUsd

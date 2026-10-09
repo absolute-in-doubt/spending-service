@@ -33,7 +33,7 @@ databaseChangeLog:
                   name: close_rate
                   type: NUMERIC(19, 6)
                   constraints:
-                    nullable: false
+                    nullable: true
               - column:
                   name: previous_close_rate
                   type: NUMERIC(19, 6)
@@ -59,3 +59,6 @@ databaseChangeLog:
                   name: currency_pair
               - column:
                   name: rate_date
+
+        - sql:
+            sql: ALTER TABLE exchange_rates ADD CONSTRAINT chk_exchange_rates_has_rate CHECK (close_rate IS NOT NULL OR previous_close_rate IS NOT NULL)

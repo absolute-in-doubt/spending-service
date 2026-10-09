@@ -19,4 +19,8 @@ public class ExchangeRate {
     private BigDecimal closeRate;
     private BigDecimal previousCloseRate;
     private OffsetDateTime createdAt;
+
+    public BigDecimal getEffectiveRate() {
+        return closeRate != null ? closeRate : previousCloseRate;
+    }
 }

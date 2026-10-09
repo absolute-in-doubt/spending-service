@@ -245,4 +245,43 @@ class TransactionOperationServiceTest {
                 tx.getSum().compareTo(new BigDecimal("10000.00")) == 0 && !tx.isLimitExceeded()
         ));
     }
+
+    @Test
+    @DisplayName("Should queue transaction in DLQ when earlier transaction for same account and category is pending")
+    void shouldQueueInDlqWhenEarlierTransactionIsPending() {
+        RegisterTransactionRequestDto request = new RegisterTransactionRequestDto(
+                "0000000123",
+                "9999999999",
+                "USD",
+                new BigDecimal("600.00"),
+                "product",
+                now
+        );
+
+        AccountNumber accountFrom = AccountNumber.of("0000000123");
+        when(unprocessedTransactionRepository.hasUnresolvedTransactions(accountFrom, ExpenseCategory.PRODUCT, currentMonth))
+                .thenReturn(true);
+
+        when(unprocessedTransactionRepository.save(any(UnprocessedTransaction.class)))
+                .thenAnswer(inv -> {
+                    UnprocessedTransaction entity = inv.getArgument(0);
+                    entity.setId(101L);
+                    return entity;
+                });
+
+        assertThatThrownBy(() -> service.saveTransactionOperation(request))
+                .isInstanceOf(TransactionParkedException.class)
+                .hasMessageContaining("Earlier transaction is pending or unresolved for this account");
+
+        verify(unprocessedTransactionRepository).save(argThat(entity ->
+                entity.getAccountFrom().equals(accountFrom)
+                        && entity.getExpenseCategory().equals(ExpenseCategory.PRODUCT)
+                        && entity.getSum().compareTo(new BigDecimal("600.00")) == 0
+                        && entity.getFailureReason().contains("Queued behind earlier unresolved transaction")
+        ));
+
+        // Strict verification: DB balance is NOT modified and transaction is NOT saved directly
+        verifyNoInteractions(monthlySpendingRepository);
+        verifyNoInteractions(transactionOperationRepository);
+    }
 }

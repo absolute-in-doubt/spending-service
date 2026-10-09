@@ -27,10 +27,7 @@ public class CurrencyConversionService {
         }
 
         Objects.requireNonNull(rate, "Exchange rate is required for converting " + currency + " to USD");
-        BigDecimal effectiveRate = rate.getCloseRate();
-        if (effectiveRate == null && rate.getPreviousCloseRate() != null) {
-            effectiveRate = rate.getPreviousCloseRate();
-        }
+        BigDecimal effectiveRate = rate.getEffectiveRate();
         if (effectiveRate == null) {
             throw new IllegalStateException("No close rate or previous close rate available for " + currency);
         }
