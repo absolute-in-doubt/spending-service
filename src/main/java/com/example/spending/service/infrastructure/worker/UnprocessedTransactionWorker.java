@@ -9,7 +9,6 @@ import com.example.spending.service.domain.repository.UnprocessedTransactionRepo
 import com.example.spending.service.infrastructure.worker.config.UnprocessedTransactionWorkerProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -34,7 +33,7 @@ public class UnprocessedTransactionWorker {
     private final CurrencyRateApiClient currencyRateApiClient;
     private final ExchangeRateRepository exchangeRateRepository;
     private final UnprocessedTransactionWorkerProperties properties;
-    private final ObjectProvider<TransactionRecoveryHandler> recoveryHandlerProvider;
+    private final TransactionRecoveryHandler recoveryHandler;
 
     @Scheduled(fixedDelayString = "${app.dlq.worker.fixed-delay:10s}")
     public void processBatch() {
@@ -101,10 +100,7 @@ public class UnprocessedTransactionWorker {
         }
 
         if (success) {
-            var handler = recoveryHandlerProvider.getIfAvailable();
-            if (handler != null) {
-                handler.completeRecoveredTransaction(record);
-            }
+            recoveryHandler.completeRecoveredTransaction(record);
             record.markProcessed();
             repository.update(record);
             log.info("Unprocessed transaction ID {} successfully processed and completed", record.getId());
