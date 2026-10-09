@@ -5,6 +5,8 @@ import com.example.spending.service.application.mapper.DefaultTransactionOperati
 import com.example.spending.service.application.mapper.TransactionOperationDtoMapper;
 import com.example.spending.service.application.port.in.dto.RegisterTransactionRequestDto;
 import com.example.spending.service.application.port.in.dto.TransactionResponseDto;
+import com.example.spending.service.application.service.impl.CurrencyRateServiceImpl;
+import com.example.spending.service.application.service.impl.TransactionOperationServiceImpl;
 import com.example.spending.service.domain.model.*;
 import com.example.spending.service.application.port.in.dto.ExceededTransactionResponseDto;
 import com.example.spending.service.application.port.out.TransactionQueryRepository;
@@ -63,6 +65,7 @@ class TransactionOperationServiceTest {
     private final TransactionOperationDtoMapper mapper = new DefaultTransactionOperationDtoMapper();
 
     private TransactionOperationService service;
+    private TransactionRecoveryHandler transactionRecoveryHandler;
 
     private final OffsetDateTime now = OffsetDateTime.of(2026, 10, 9, 10, 0, 0, 0, ZoneOffset.UTC);
     private final LocalDate today = now.toLocalDate();
@@ -70,7 +73,7 @@ class TransactionOperationServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new TransactionOperationService(
+        TransactionOperationServiceImpl serviceImpl = new TransactionOperationServiceImpl(
                 currencyRateService,
                 currencyConversionService,
                 monthlySpendingRepository,
@@ -82,6 +85,9 @@ class TransactionOperationServiceTest {
                 mapper,
                 transactionOperations
         );
+
+        service = serviceImpl;
+        transactionRecoveryHandler = serviceImpl;
     }
 
     @Test
@@ -244,7 +250,7 @@ class TransactionOperationServiceTest {
                     return entity;
                 });
 
-        service.completeRecoveredTransaction(record);
+        transactionRecoveryHandler.completeRecoveredTransaction(record);
 
         verify(monthlySpendingRepository).save(spending);
         assertThat(spending.getTotalSpentUsd()).isEqualByComparingTo("20.00");

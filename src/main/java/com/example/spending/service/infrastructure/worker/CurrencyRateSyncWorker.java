@@ -1,5 +1,6 @@
 package com.example.spending.service.infrastructure.worker;
 
+
 import com.example.spending.service.application.service.CurrencyRateService;
 import com.example.spending.service.infrastructure.worker.config.CurrencyRateSyncProperties;
 import lombok.RequiredArgsConstructor;

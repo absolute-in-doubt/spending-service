@@ -1,6 +1,7 @@
 package com.example.spending.service.infrastructure.worker;
 
 import com.example.spending.service.application.port.out.CurrencyRateApiClient;
+import com.example.spending.service.application.service.TransactionRecoveryHandler;
 import com.example.spending.service.domain.model.AccountNumber;
 import com.example.spending.service.domain.model.CurrencyCode;
 import com.example.spending.service.domain.model.ExchangeRate;
@@ -19,7 +20,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.Duration;
-import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -27,7 +27,6 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;

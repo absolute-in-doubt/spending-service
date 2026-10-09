@@ -4,6 +4,7 @@ import com.example.spending.service.application.mapper.DefaultExpenseLimitDtoMap
 import com.example.spending.service.application.mapper.ExpenseLimitDtoMapper;
 import com.example.spending.service.application.port.in.dto.CreateExpenseLimitRequestDto;
 import com.example.spending.service.application.port.in.dto.ExpenseLimitResponseDto;
+import com.example.spending.service.application.service.impl.ExpenseLimitServiceImpl;
 import com.example.spending.service.domain.model.AccountNumber;
 import com.example.spending.service.domain.model.CurrencyCode;
 import com.example.spending.service.domain.model.ExpenseCategory;
@@ -43,7 +44,7 @@ class ExpenseLimitServiceTest {
     @BeforeEach
     void setUp() {
         fixedClock = Clock.fixed(Instant.parse("2026-10-09T12:00:00Z"), ZoneOffset.UTC);
-        service = new ExpenseLimitService(expenseLimitRepository, mapper, fixedClock);
+        service = new ExpenseLimitServiceImpl(expenseLimitRepository, mapper, fixedClock);
     }
 
     @Test

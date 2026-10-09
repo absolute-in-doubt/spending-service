@@ -2,6 +2,7 @@ package com.example.spending.service.infrastructure.worker;
 
 
 import com.example.spending.service.application.port.out.CurrencyRateApiClient;
+import com.example.spending.service.application.service.TransactionRecoveryHandler;
 import com.example.spending.service.domain.model.ExchangeRate;
 import com.example.spending.service.domain.model.UnprocessedTransaction;
 import com.example.spending.service.domain.repository.ExchangeRateRepository;

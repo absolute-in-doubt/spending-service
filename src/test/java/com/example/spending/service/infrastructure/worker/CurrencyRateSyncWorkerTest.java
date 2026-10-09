@@ -1,6 +1,7 @@
 package com.example.spending.service.infrastructure.worker;
 
 import com.example.spending.service.application.service.CurrencyRateService;
+import com.example.spending.service.application.service.impl.CurrencyRateServiceImpl;
 import com.example.spending.service.infrastructure.worker.config.CurrencyRateSyncProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

@@ -1,6 +1,7 @@
 package com.example.spending.service.application.service;
 
 import com.example.spending.service.application.port.out.CurrencyRateApiClient;
+import com.example.spending.service.application.service.impl.CurrencyRateServiceImpl;
 import com.example.spending.service.domain.model.ExchangeRate;
 import com.example.spending.service.domain.repository.ExchangeRateRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,14 +28,14 @@ class CurrencyRateServiceTest {
     @Mock
     private CurrencyRateApiClient currencyRateApiClient;
 
-    private CurrencyRateService service;
+    private CurrencyRateServiceImpl service;
 
     private final LocalDate testDate = LocalDate.of(2026, 10, 9);
     private final String pair = "KZT/USD";
 
     @BeforeEach
     void setUp() {
-        service = new CurrencyRateService(exchangeRateRepository, currencyRateApiClient);
+        service = new CurrencyRateServiceImpl(exchangeRateRepository, currencyRateApiClient);
     }
 
     @Test
