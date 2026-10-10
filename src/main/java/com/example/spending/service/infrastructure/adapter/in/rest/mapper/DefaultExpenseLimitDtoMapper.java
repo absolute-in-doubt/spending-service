@@ -1,7 +1,7 @@
-package com.example.spending.service.application.mapper;
+package com.example.spending.service.infrastructure.adapter.in.rest.mapper;
 
-import com.example.spending.service.application.port.in.dto.CreateExpenseLimitRequestDto;
-import com.example.spending.service.application.port.in.dto.ExpenseLimitResponseDto;
+import com.example.spending.service.infrastructure.adapter.in.rest.dto.CreateExpenseLimitRequestDto;
+import com.example.spending.service.infrastructure.adapter.in.rest.dto.ExpenseLimitResponseDto;
 import com.example.spending.service.domain.model.AccountNumber;
 import com.example.spending.service.domain.model.CurrencyCode;
 import com.example.spending.service.domain.model.ExpenseCategory;

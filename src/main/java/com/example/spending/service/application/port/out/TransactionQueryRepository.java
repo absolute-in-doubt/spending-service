@@ -1,6 +1,6 @@
 package com.example.spending.service.application.port.out;
 
-import com.example.spending.service.application.port.in.dto.ExceededTransactionResponseDto;
+import com.example.spending.service.infrastructure.adapter.in.rest.dto.ExceededTransactionResponseDto;
 import com.example.spending.service.domain.model.AccountNumber;
 
 import java.util.List;

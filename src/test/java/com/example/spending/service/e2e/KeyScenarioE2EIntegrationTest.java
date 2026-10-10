@@ -1,8 +1,8 @@
 package com.example.spending.service.e2e;
 
-import com.example.spending.service.application.port.in.dto.ExceededTransactionResponseDto;
-import com.example.spending.service.application.port.in.dto.ExpenseLimitResponseDto;
-import com.example.spending.service.application.port.in.dto.TransactionResponseDto;
+import com.example.spending.service.infrastructure.adapter.in.rest.dto.ExceededTransactionResponseDto;
+import com.example.spending.service.infrastructure.adapter.in.rest.dto.ExpenseLimitResponseDto;
+import com.example.spending.service.infrastructure.adapter.in.rest.dto.TransactionResponseDto;
 import com.example.spending.service.support.BaseIntegrationTest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

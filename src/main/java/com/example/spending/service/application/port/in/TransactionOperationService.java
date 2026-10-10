@@ -1,8 +1,8 @@
-package com.example.spending.service.application.service;
+package com.example.spending.service.application.port.in;
 
-import com.example.spending.service.application.port.in.dto.ExceededTransactionResponseDto;
-import com.example.spending.service.application.port.in.dto.RegisterTransactionRequestDto;
-import com.example.spending.service.application.port.in.dto.TransactionResponseDto;
+import com.example.spending.service.infrastructure.adapter.in.rest.dto.ExceededTransactionResponseDto;
+import com.example.spending.service.infrastructure.adapter.in.rest.dto.RegisterTransactionRequestDto;
+import com.example.spending.service.infrastructure.adapter.in.rest.dto.TransactionResponseDto;
 
 import java.util.List;
 

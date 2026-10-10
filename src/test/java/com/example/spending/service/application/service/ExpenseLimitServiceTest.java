@@ -1,9 +1,10 @@
 package com.example.spending.service.application.service;
 
-import com.example.spending.service.application.mapper.DefaultExpenseLimitDtoMapper;
-import com.example.spending.service.application.mapper.ExpenseLimitDtoMapper;
-import com.example.spending.service.application.port.in.dto.CreateExpenseLimitRequestDto;
-import com.example.spending.service.application.port.in.dto.ExpenseLimitResponseDto;
+import com.example.spending.service.infrastructure.adapter.in.rest.mapper.DefaultExpenseLimitDtoMapper;
+import com.example.spending.service.infrastructure.adapter.in.rest.mapper.ExpenseLimitDtoMapper;
+import com.example.spending.service.application.port.in.ExpenseLimitService;
+import com.example.spending.service.infrastructure.adapter.in.rest.dto.CreateExpenseLimitRequestDto;
+import com.example.spending.service.infrastructure.adapter.in.rest.dto.ExpenseLimitResponseDto;
 import com.example.spending.service.application.service.impl.ExpenseLimitServiceImpl;
 import com.example.spending.service.domain.model.AccountNumber;
 import com.example.spending.service.domain.model.CurrencyCode;

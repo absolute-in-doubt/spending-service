@@ -1,7 +1,7 @@
-package com.example.spending.service.application.service;
+package com.example.spending.service.application.port.in;
 
-import com.example.spending.service.application.port.in.dto.CreateExpenseLimitRequestDto;
-import com.example.spending.service.application.port.in.dto.ExpenseLimitResponseDto;
+import com.example.spending.service.infrastructure.adapter.in.rest.dto.CreateExpenseLimitRequestDto;
+import com.example.spending.service.infrastructure.adapter.in.rest.dto.ExpenseLimitResponseDto;
 
 import java.util.List;
 

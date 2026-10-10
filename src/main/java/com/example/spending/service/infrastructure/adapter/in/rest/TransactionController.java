@@ -1,7 +1,7 @@
-package com.example.spending.service.application.port.in;
+package com.example.spending.service.infrastructure.adapter.in.rest;
 
-import com.example.spending.service.application.port.in.dto.RegisterTransactionRequestDto;
-import com.example.spending.service.application.port.in.dto.TransactionResponseDto;
+import com.example.spending.service.infrastructure.adapter.in.rest.dto.RegisterTransactionRequestDto;
+import com.example.spending.service.infrastructure.adapter.in.rest.dto.TransactionResponseDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;

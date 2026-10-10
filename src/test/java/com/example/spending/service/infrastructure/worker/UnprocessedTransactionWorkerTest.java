@@ -1,7 +1,7 @@
 package com.example.spending.service.infrastructure.worker;
 
 import com.example.spending.service.application.port.out.CurrencyRateApiClient;
-import com.example.spending.service.application.service.TransactionRecoveryHandler;
+import com.example.spending.service.application.port.in.TransactionRecoveryHandler;
 import com.example.spending.service.domain.model.AccountNumber;
 import com.example.spending.service.domain.model.CurrencyCode;
 import com.example.spending.service.domain.model.ExchangeRate;
@@ -10,7 +10,8 @@ import com.example.spending.service.domain.model.UnprocessedTransaction;
 import com.example.spending.service.domain.model.UnprocessedTransactionStatus;
 import com.example.spending.service.domain.repository.ExchangeRateRepository;
 import com.example.spending.service.domain.repository.UnprocessedTransactionRepository;
-import com.example.spending.service.infrastructure.worker.config.UnprocessedTransactionWorkerProperties;
+import com.example.spending.service.infrastructure.adapter.in.worker.UnprocessedTransactionWorker;
+import com.example.spending.service.infrastructure.adapter.in.worker.config.UnprocessedTransactionWorkerProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

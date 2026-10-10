@@ -1,11 +1,11 @@
 package com.example.spending.service.support;
 
 import com.example.spending.service.TestcontainersConfiguration;
-import com.example.spending.service.application.port.in.dto.CreateExpenseLimitRequestDto;
-import com.example.spending.service.application.port.in.dto.ExceededTransactionResponseDto;
-import com.example.spending.service.application.port.in.dto.ExpenseLimitResponseDto;
-import com.example.spending.service.application.port.in.dto.RegisterTransactionRequestDto;
-import com.example.spending.service.application.port.in.dto.TransactionResponseDto;
+import com.example.spending.service.infrastructure.adapter.in.rest.dto.CreateExpenseLimitRequestDto;
+import com.example.spending.service.infrastructure.adapter.in.rest.dto.ExceededTransactionResponseDto;
+import com.example.spending.service.infrastructure.adapter.in.rest.dto.ExpenseLimitResponseDto;
+import com.example.spending.service.infrastructure.adapter.in.rest.dto.RegisterTransactionRequestDto;
+import com.example.spending.service.infrastructure.adapter.in.rest.dto.TransactionResponseDto;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import org.jooq.DSLContext;

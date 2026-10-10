@@ -1,4 +1,4 @@
-package com.example.spending.service.infrastructure.worker.config;
+package com.example.spending.service.infrastructure.adapter.in.worker.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 

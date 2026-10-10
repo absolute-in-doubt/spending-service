@@ -1,14 +1,14 @@
-package com.example.spending.service.infrastructure.worker;
+package com.example.spending.service.infrastructure.adapter.in.worker;
 
 
 import com.example.spending.service.application.port.out.CurrencyRateApiClient;
-import com.example.spending.service.application.service.TransactionRecoveryHandler;
+import com.example.spending.service.application.port.in.TransactionRecoveryHandler;
 import com.example.spending.service.domain.model.ExchangeRate;
 import com.example.spending.service.domain.model.UnprocessedTransaction;
 import com.example.spending.service.domain.repository.ExchangeRateRepository;
 import com.example.spending.service.domain.repository.UnprocessedTransactionRepository;
 import com.example.spending.service.domain.util.DateTimeUtils;
-import com.example.spending.service.infrastructure.worker.config.UnprocessedTransactionWorkerProperties;
+import com.example.spending.service.infrastructure.adapter.in.worker.config.UnprocessedTransactionWorkerProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;

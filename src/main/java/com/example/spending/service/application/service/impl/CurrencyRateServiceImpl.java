@@ -1,7 +1,7 @@
 package com.example.spending.service.application.service.impl;
 
 import com.example.spending.service.application.port.out.CurrencyRateApiClient;
-import com.example.spending.service.application.service.CurrencyRateService;
+import com.example.spending.service.application.port.in.CurrencyRateService;
 import com.example.spending.service.domain.model.ExchangeRate;
 import com.example.spending.service.domain.repository.ExchangeRateRepository;
 import lombok.RequiredArgsConstructor;

@@ -14,7 +14,8 @@ spring:
 
 logging:
   level:
-    org.jooq.tools.LoggerListener: DEBUG
+    - org.jooq.tools.LoggerListener: INFO
+    - com.example.spending.service: INFO
 
 app:
   currency:

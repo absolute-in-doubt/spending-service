@@ -1,4 +1,4 @@
-package com.example.spending.service.application.port.in.dto;
+package com.example.spending.service.infrastructure.adapter.in.rest.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 

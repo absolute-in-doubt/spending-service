@@ -1,18 +1,14 @@
 package com.example.spending.service.e2e;
 
-import com.example.spending.service.application.port.in.dto.TransactionResponseDto;
-import com.example.spending.service.domain.model.UnprocessedTransaction;
-import com.example.spending.service.domain.model.UnprocessedTransactionStatus;
+import com.example.spending.service.infrastructure.adapter.in.rest.dto.TransactionResponseDto;
 import com.example.spending.service.domain.repository.TransactionOperationRepository;
 import com.example.spending.service.domain.repository.UnprocessedTransactionRepository;
-import com.example.spending.service.infrastructure.worker.UnprocessedTransactionWorker;
+import com.example.spending.service.infrastructure.adapter.in.worker.UnprocessedTransactionWorker;
 import com.example.spending.service.support.BaseIntegrationTest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.web.client.HttpServerErrorException;

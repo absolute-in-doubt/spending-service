@@ -1,4 +1,4 @@
-package com.example.spending.service.infrastructure.adapter.in.rest;
+package com.example.spending.service.infrastructure.adapter.in.rest.impl;
 
 import com.example.spending.service.application.exception.TransactionParkedException;
 import jakarta.validation.ConstraintViolationException;

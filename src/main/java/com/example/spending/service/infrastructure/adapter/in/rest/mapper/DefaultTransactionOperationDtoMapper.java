@@ -1,7 +1,7 @@
-package com.example.spending.service.application.mapper;
+package com.example.spending.service.infrastructure.adapter.in.rest.mapper;
 
-import com.example.spending.service.application.port.in.dto.RegisterTransactionRequestDto;
-import com.example.spending.service.application.port.in.dto.TransactionResponseDto;
+import com.example.spending.service.infrastructure.adapter.in.rest.dto.RegisterTransactionRequestDto;
+import com.example.spending.service.infrastructure.adapter.in.rest.dto.TransactionResponseDto;
 import com.example.spending.service.domain.model.AccountNumber;
 import com.example.spending.service.domain.model.CurrencyCode;
 import com.example.spending.service.domain.model.ExpenseCategory;

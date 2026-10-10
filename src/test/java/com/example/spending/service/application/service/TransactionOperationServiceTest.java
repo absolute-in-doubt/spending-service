@@ -1,14 +1,16 @@
 package com.example.spending.service.application.service;
 
 import com.example.spending.service.application.exception.TransactionParkedException;
-import com.example.spending.service.application.mapper.DefaultTransactionOperationDtoMapper;
-import com.example.spending.service.application.mapper.TransactionOperationDtoMapper;
-import com.example.spending.service.application.port.in.dto.RegisterTransactionRequestDto;
-import com.example.spending.service.application.port.in.dto.TransactionResponseDto;
-import com.example.spending.service.application.service.impl.CurrencyRateServiceImpl;
+import com.example.spending.service.infrastructure.adapter.in.rest.mapper.DefaultTransactionOperationDtoMapper;
+import com.example.spending.service.infrastructure.adapter.in.rest.mapper.TransactionOperationDtoMapper;
+import com.example.spending.service.application.port.in.CurrencyRateService;
+import com.example.spending.service.application.port.in.TransactionOperationService;
+import com.example.spending.service.application.port.in.TransactionRecoveryHandler;
+import com.example.spending.service.infrastructure.adapter.in.rest.dto.RegisterTransactionRequestDto;
+import com.example.spending.service.infrastructure.adapter.in.rest.dto.TransactionResponseDto;
 import com.example.spending.service.application.service.impl.TransactionOperationServiceImpl;
 import com.example.spending.service.domain.model.*;
-import com.example.spending.service.application.port.in.dto.ExceededTransactionResponseDto;
+import com.example.spending.service.infrastructure.adapter.in.rest.dto.ExceededTransactionResponseDto;
 import com.example.spending.service.application.port.out.TransactionQueryRepository;
 import com.example.spending.service.domain.repository.ExpenseLimitRepository;
 import com.example.spending.service.domain.repository.MonthlySpendingRepository;

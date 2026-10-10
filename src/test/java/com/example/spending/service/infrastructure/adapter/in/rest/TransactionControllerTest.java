@@ -1,9 +1,11 @@
 package com.example.spending.service.infrastructure.adapter.in.rest;
 
 import com.example.spending.service.application.exception.TransactionParkedException;
-import com.example.spending.service.application.port.in.dto.RegisterTransactionRequestDto;
-import com.example.spending.service.application.port.in.dto.TransactionResponseDto;
-import com.example.spending.service.application.service.TransactionOperationService;
+import com.example.spending.service.infrastructure.adapter.in.rest.dto.RegisterTransactionRequestDto;
+import com.example.spending.service.infrastructure.adapter.in.rest.dto.TransactionResponseDto;
+import com.example.spending.service.application.port.in.TransactionOperationService;
+import com.example.spending.service.infrastructure.adapter.in.rest.impl.GlobalExceptionHandler;
+import com.example.spending.service.infrastructure.adapter.in.rest.impl.TransactionControllerImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

@@ -1,8 +1,8 @@
-package com.example.spending.service.infrastructure.worker;
+package com.example.spending.service.infrastructure.adapter.in.worker;
 
 
-import com.example.spending.service.application.service.CurrencyRateService;
-import com.example.spending.service.infrastructure.worker.config.CurrencyRateSyncProperties;
+import com.example.spending.service.application.port.in.CurrencyRateService;
+import com.example.spending.service.infrastructure.adapter.in.worker.config.CurrencyRateSyncProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;

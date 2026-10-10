@@ -1,10 +1,12 @@
 package com.example.spending.service.infrastructure.adapter.in.rest;
 
-import com.example.spending.service.application.port.in.dto.CreateExpenseLimitRequestDto;
-import com.example.spending.service.application.port.in.dto.ExceededTransactionResponseDto;
-import com.example.spending.service.application.port.in.dto.ExpenseLimitResponseDto;
-import com.example.spending.service.application.service.ExpenseLimitService;
-import com.example.spending.service.application.service.TransactionOperationService;
+import com.example.spending.service.infrastructure.adapter.in.rest.dto.CreateExpenseLimitRequestDto;
+import com.example.spending.service.infrastructure.adapter.in.rest.dto.ExceededTransactionResponseDto;
+import com.example.spending.service.infrastructure.adapter.in.rest.dto.ExpenseLimitResponseDto;
+import com.example.spending.service.application.port.in.ExpenseLimitService;
+import com.example.spending.service.application.port.in.TransactionOperationService;
+import com.example.spending.service.infrastructure.adapter.in.rest.impl.ClientControllerImpl;
+import com.example.spending.service.infrastructure.adapter.in.rest.impl.GlobalExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

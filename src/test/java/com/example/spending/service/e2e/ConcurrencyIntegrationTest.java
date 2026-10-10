@@ -1,6 +1,6 @@
 package com.example.spending.service.e2e;
 
-import com.example.spending.service.application.port.in.dto.TransactionResponseDto;
+import com.example.spending.service.infrastructure.adapter.in.rest.dto.TransactionResponseDto;
 import com.example.spending.service.domain.model.AccountNumber;
 import com.example.spending.service.domain.model.ExpenseCategory;
 import com.example.spending.service.domain.repository.MonthlySpendingRepository;
