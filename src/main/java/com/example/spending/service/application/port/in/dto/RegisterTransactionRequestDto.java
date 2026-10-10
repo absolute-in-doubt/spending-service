@@ -25,8 +25,8 @@ public record RegisterTransactionRequestDto(
         @JsonProperty("currency_shortname") String currencyShortname,
 
         @NotNull(message = "sum must not be null")
-        @DecimalMin(value = "0.01", message = "sum must be greater than zero")
-        @Digits(integer = 17, fraction = 2, message = "sum must have at most 2 decimal places")
+        @DecimalMin(value = "0.0", message = "sum must be greater than zero")
+        @Digits(integer = 17, fraction = 6, message = "sum must have at most 6 decimal places")
         @JsonProperty("sum") BigDecimal sum,
 
         @NotBlank(message = "expense_category must not be blank")

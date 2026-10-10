@@ -125,14 +125,9 @@ public class TransactionOperationServiceImpl implements TransactionOperationServ
         LocalDate txDate = DateTimeUtils.toBaseLocalDate(record.getDateTime());
         String pair = currency.code() + "/USD";
 
-        BigDecimal amountUsd;
-        if (CurrencyCode.USD.equals(currency)) {
-            amountUsd = record.getSum();
-        } else {
-            ExchangeRate rate = currencyRateService.getOrFetchRate(pair, txDate)
-                    .orElseThrow(() -> new IllegalStateException("Expected rate to be available in DB for " + pair));
-            amountUsd = currencyConversionService.convertToUsd(record.getSum(), currency, rate);
-        }
+        ExchangeRate rate = currencyRateService.getOrFetchRate(pair, txDate)
+                .orElseThrow(() -> new IllegalStateException("Expected rate to be available in DB for " + pair));
+        BigDecimal amountUsd = currencyConversionService.convertToUsd(record.getSum(), currency, rate);
 
         RegisterTransactionRequestDto dto = new RegisterTransactionRequestDto(
                 record.getAccountFrom().value(),
@@ -177,6 +172,11 @@ public class TransactionOperationServiceImpl implements TransactionOperationServ
                 spending.getTotalSpentUsd(),
                 amountUsd
         );
+
+        if(activeLimit.isEmpty())
+            log.info("Limit not found for account from: {} and category: {}", accountFrom.value(), category);
+        else
+            log.info("Limit evaluation result for transaction from {}:\n usd tx amount: {}, usd limit: {}, limit exceeded: {}", accountFrom.value(), amountUsd, activeLimit.get(), limitExceeded);
 
         // Step 4: Accumulate expense in AccountMonthlySpending and persist
         spending.addExpense(amountUsd);

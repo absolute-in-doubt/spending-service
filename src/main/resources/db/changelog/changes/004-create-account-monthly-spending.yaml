@@ -23,7 +23,7 @@ databaseChangeLog:
                     nullable: false
               - column:
                   name: total_spent_usd
-                  type: NUMERIC(19, 2)
+                  type: NUMERIC(19, 6)
                   defaultValueNumeric: 0.00
                   constraints:
                     nullable: false
@@ -38,3 +38,12 @@ databaseChangeLog:
             constraintName: pk_account_monthly_spending
             tableName: account_monthly_spending
             columnNames: account_from, expense_category, year_month
+
+  - changeSet:
+      id: 014-update-transaction-records-precision
+      author: spending-service
+      changes:
+        - modifyDataType:
+            tableName: account_monthly_spending
+            columnName: total_spent_usd
+            newDataType: NUMERIC(19, 6)

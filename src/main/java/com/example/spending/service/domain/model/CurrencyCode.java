@@ -7,8 +7,8 @@ public record CurrencyCode(String code) {
     private static final Pattern PATTERN = Pattern.compile("^[A-Z]{3}$");
 
     public static final CurrencyCode USD = new CurrencyCode("USD");
-    public static final CurrencyCode KZT = new CurrencyCode("KZT");
-    public static final CurrencyCode RUB = new CurrencyCode("RUB");
+//    public static final CurrencyCode KZT = new CurrencyCode("KZT");
+//    public static final CurrencyCode RUB = new CurrencyCode("RUB");
 
     public CurrencyCode {
         Objects.requireNonNull(code, "Currency code must not be null");

@@ -12,6 +12,10 @@ spring:
     change-log: classpath:/db/changelog/db.changelog-master.yaml
     enabled: true
 
+logging:
+  level:
+    org.jooq.tools.LoggerListener: DEBUG
+
 app:
   currency:
     twelvedata:

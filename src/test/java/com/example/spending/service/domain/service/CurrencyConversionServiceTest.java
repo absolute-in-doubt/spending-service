@@ -15,6 +15,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class CurrencyConversionServiceTest {
 
     private CurrencyConversionService conversionService;
+    private CurrencyCode KZT = CurrencyCode.of("KZT");
+    private CurrencyCode RUB = CurrencyCode.of("RUB");
 
     @BeforeEach
     void setUp() {
@@ -26,7 +28,7 @@ class CurrencyConversionServiceTest {
     void shouldReturnAmountDirectlyWhenCurrencyIsUsd() {
         BigDecimal result = conversionService.convertToUsd(new BigDecimal("123.456"), CurrencyCode.USD, null);
 
-        assertThat(result).isEqualByComparingTo("123.46");
+        assertThat(result).isEqualByComparingTo("123.4560");
     }
 
     @Test
@@ -39,7 +41,7 @@ class CurrencyConversionServiceTest {
                 .previousCloseRate(new BigDecimal("0.0020"))
                 .build();
 
-        BigDecimal result = conversionService.convertToUsd(new BigDecimal("1000"), CurrencyCode.KZT, rate);
+        BigDecimal result = conversionService.convertToUsd(new BigDecimal("1000"), KZT, rate);
 
         assertThat(result).isEqualByComparingTo("2.10");
     }
@@ -54,7 +56,7 @@ class CurrencyConversionServiceTest {
                 .previousCloseRate(new BigDecimal("0.0020"))
                 .build();
 
-        BigDecimal result = conversionService.convertToUsd(new BigDecimal("1000"), CurrencyCode.KZT, rate);
+        BigDecimal result = conversionService.convertToUsd(new BigDecimal("1000"), KZT, rate);
 
         assertThat(result).isEqualByComparingTo("2.00");
     }
@@ -69,7 +71,7 @@ class CurrencyConversionServiceTest {
                 .previousCloseRate(null)
                 .build();
 
-        assertThatThrownBy(() -> conversionService.convertToUsd(new BigDecimal("100"), CurrencyCode.RUB, rate))
+        assertThatThrownBy(() -> conversionService.convertToUsd(new BigDecimal("100"), RUB, rate))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("No close rate or previous close rate available for RUB");
     }

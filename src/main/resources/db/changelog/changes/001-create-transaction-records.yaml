@@ -81,3 +81,12 @@ databaseChangeLog:
                   name: account_from
               - column:
                   name: limit_exceeded
+
+  - changeSet:
+      id: 011-update-transaction-records-precision
+      author: spending-service
+      changes:
+        - modifyDataType:
+            tableName: transaction_records
+            columnName: sum
+            newDataType: NUMERIC(19, 6)
