@@ -55,30 +55,32 @@ public class JooqUnprocessedTransactionRepository implements UnprocessedTransact
 
     @Override
     public List<UnprocessedTransaction> acquireBatchForRetry(String workerToken, OffsetDateTime now, OffsetDateTime leaseUntil, int maxRetries, int limit) {
-        List<Long> idsToLease = dsl.select(UNPROCESSED_TRANSACTIONS.ID)
-                .from(UNPROCESSED_TRANSACTIONS)
-                .where(UNPROCESSED_TRANSACTIONS.STATUS.eq("PENDING"))
-                .and(UNPROCESSED_TRANSACTIONS.RETRY_COUNT.lt(maxRetries))
-                .and(UNPROCESSED_TRANSACTIONS.LEASED_UNTIL.isNull()
-                        .or(UNPROCESSED_TRANSACTIONS.LEASED_UNTIL.lt(now)))
-                .orderBy(UNPROCESSED_TRANSACTIONS.DATETIME.asc(), UNPROCESSED_TRANSACTIONS.ID.asc())
-                .limit(limit)
-                .fetchInto(Long.class);
+        // 1. Define the CTE with LIMIT and FOR UPDATE SKIP LOCKED
+        var batch = org.jooq.impl.DSL.name("batch").as(
+                dsl.select(UNPROCESSED_TRANSACTIONS.ID)
+                        .from(UNPROCESSED_TRANSACTIONS)
+                        .where(UNPROCESSED_TRANSACTIONS.STATUS.eq("PENDING"))
+                        .and(UNPROCESSED_TRANSACTIONS.RETRY_COUNT.lt(maxRetries))
+                        .and(UNPROCESSED_TRANSACTIONS.LEASED_UNTIL.isNull()
+                                .or(UNPROCESSED_TRANSACTIONS.LEASED_UNTIL.lt(now)))
+                        .orderBy(UNPROCESSED_TRANSACTIONS.DATETIME.asc(), UNPROCESSED_TRANSACTIONS.ID.asc())
+                        .limit(limit)
+                        .forUpdate()
+                        .skipLocked()
+        );
 
-        if (idsToLease.isEmpty()) {
-            return List.of();
-        }
-
-        List<UnprocessedTransaction> acquired = dsl.update(UNPROCESSED_TRANSACTIONS)
+        // 2. Perform atomic UPDATE ... FROM batch ... RETURNING
+        List<UnprocessedTransaction> acquired = dsl.with(batch)
+                .update(UNPROCESSED_TRANSACTIONS)
                 .set(UNPROCESSED_TRANSACTIONS.LEASE_TOKEN, workerToken)
                 .set(UNPROCESSED_TRANSACTIONS.LEASED_UNTIL, leaseUntil)
                 .set(UNPROCESSED_TRANSACTIONS.UPDATED_AT, now)
-                .where(UNPROCESSED_TRANSACTIONS.ID.in(idsToLease))
-                .and(UNPROCESSED_TRANSACTIONS.LEASED_UNTIL.isNull()
-                        .or(UNPROCESSED_TRANSACTIONS.LEASED_UNTIL.lt(now)))
+                .from(batch)
+                .where(UNPROCESSED_TRANSACTIONS.ID.eq(batch.field(UNPROCESSED_TRANSACTIONS.ID)))
                 .returning()
                 .fetch(mapper);
 
+        // 3. Preserve deterministic ordering in memory (since UPDATE FROM does not guarantee result order)
         acquired.sort(Comparator.comparing(UnprocessedTransaction::getDateTime).thenComparing(UnprocessedTransaction::getId));
         return acquired;
     }
